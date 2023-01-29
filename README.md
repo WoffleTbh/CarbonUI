@@ -2,7 +2,7 @@
 This is the official repository for the CarbonUI library.
 
 # Preview
-TODO
+![Preview](https://github.com/WoffleTbh/CarbonUI/blob/main/githubAssets/preview1.png?raw=true)
 # Usage
 To import CarbonUI, you can use the code below:
 ```lua
