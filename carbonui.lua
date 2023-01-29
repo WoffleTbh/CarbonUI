@@ -136,6 +136,20 @@ local util = {
         end
     end
 }
+util.addShadow = function(window, size)
+    size = size / 10
+    for i = 0, 9 do
+        util.roundify(util.create("Frame", {
+            Parent = window,
+            Size = UDim2.new(1, size * (i+1)*2, 1, size * (i+1)*2),
+            Position = UDim2.new(0.5, 0, 0.5, 0),
+            BackgroundColor3 = Color3.new(0, 0, 0),
+            BackgroundTransparency = 0.9 + i/100,
+            ZIndex = -1,
+            AnchorPoint = Vector2.new(0.5, 0.5)
+        }), 24)
+    end
+end
 
 local bindingFunc = function(k) end
 local handlers = {}
@@ -161,13 +175,19 @@ carbon = {
             Size = UDim2.new(0, width + 4, 0, height + 4),
             Position = UDim2.new(0,10,0,10),
             Parent = root,
-            ClipsDescendants = true,
             Name = "Carbon"
         })
         util.roundify(border, 12)
-
+        util.addShadow(border, 15)
+        util.makeDraggable(border)
+        local borderInner = util.create("Frame", {
+            Size = UDim2.new(1, 0, 1, 0),
+            BackgroundTransparency = 1,
+            ClipsDescendants = true,
+            Parent = border
+        })
         local maximizer = util.create("TextButton", {
-            Parent = border,
+            Parent = borderInner,
             BackgroundTransparency = 1,
             Size = UDim2.new(1,0,1,0),
             Text = "",
@@ -183,9 +203,6 @@ carbon = {
             Parent = border,
             Rotation = 45
         })
-
-        util.makeDraggable(border)
-
         task.spawn(function()
             while true do
                 gradient.Rotation += 1
@@ -197,7 +214,7 @@ carbon = {
             Size = UDim2.new(0, width, 0, height),
             Position = UDim2.new(0, 2, 0, 2),
             BackgroundColor3 = Color3.fromHex("#24283b"),
-            Parent = border
+            Parent = borderInner
         })
         util.roundify(main, 12)
 
@@ -684,10 +701,10 @@ carbon = {
                 Size = UDim2.new(0, 354, 0, 242),
                 Position = UDim2.new(0,mouse.X,0,mouse.Y),
                 Parent = root,
-                ClipsDescendants = true,
                 Name = "RGBSelection"
             })
             util.roundify(border, 12)
+            util.addShadow(border, 15)
 
             local gradient = util.create("UIGradient", {
                 Color = ColorSequence.new({
