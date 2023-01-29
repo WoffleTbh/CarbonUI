@@ -413,6 +413,7 @@ carbon = {
         categoryContent.ChildAdded:Connect(function(child)
             if not child:IsA("GuiObject") then return end
             category.Size += UDim2.new(0, 0, 0, child.AbsoluteSize.Y + 5)
+            util.formatTab(tab)
         end)
         util.create("UIPadding", {
             Parent = categoryContent,
@@ -1043,13 +1044,14 @@ carbon = {
             Font = Enum.Font.Ubuntu,
             FontSize = Enum.FontSize.Size18,
             TextColor3 = Color3.fromHex("#a9b1d6"),
-            Size = UDim2.new(0, 25, 0, 25),
-            Position = UDim2.new(1,-25,0,0),
-            Parent = selectBtn
+            Size = UDim2.new(0, 21, 0, 21),
+            Position = UDim2.new(1,-21,0,0),
+            Parent = selectBtn,
+            BackgroundTransparency = 1
         })
         selectBtn.MouseButton1Down:Connect(function()
             if root:FindFirstChild(text .. "Sel") then
-                root:FindFirstChild(text .. "Sel"):TweenSize(UDim2.new(0, selectBtn.AbsoluteSize.X, 0, 0), Enum.PoseEasingDirection.Out, Enum.EasingStyle.Quart, 0.2, true)
+                root:FindFirstChild(text .. "Sel"):TweenSize(UDim2.new(0, selectBtn.AbsoluteSize.X, 0, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, 0.2, true)
                 task.delay(0.2, function()root:FindFirstChild(text .. "Sel"):Destroy()end)
                 indicator.Text = "+"
                 return
@@ -1059,8 +1061,9 @@ carbon = {
                 Parent = root,
                 Size = UDim2.new(0, selectBtn.AbsoluteSize.X, 0, 0),
                 Position = UDim2.new(0, selectBtn.AbsolutePosition.X, 0, selectBtn.AbsolutePosition.Y + selectBtn.AbsoluteSize.Y),
-                BackgroundColor3 = Color3.fromHex("#24283b"),
-                Name = text .. "Sel"
+                BackgroundColor3 = Color3.fromHex("#1a1b26"),
+                Name = text .. "Sel",
+                ClipsDescendants = true
             })
             util.create("UIListLayout", {
                 Parent = selection
@@ -1081,7 +1084,7 @@ carbon = {
                     selectBtn.Text = tostring(v)
                 end)
             end
-            selection:TweenSize(UDim2.new(0, selectBtn.AbsoluteSize.X, 0, #values * 20), Enum.PoseEasingDirection.Out, Enum.EasingStyle.Quart, 0.2, true)
+            selection:TweenSize(UDim2.new(0, selectBtn.AbsoluteSize.X, 0, #values * 20), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, 0.2, true)
         end)
         return dropdownBg
     end,
@@ -1149,7 +1152,8 @@ carbon = {
         oldWidget.Size = UDim2.new(0.5, -3, 0, oldWidget.Size.Y.Offset)
         newWidget.Size = UDim2.new(0.5, -3, 0, newWidget.Size.Y.Offset)
         newWidget.Position = oldWidget.Position + UDim2.new(0.5, 3, 0, 0)
-    end
+    end,
+    util = util
 }
 
 if gethui and gethui():FindFirstChild(root.Name) then
