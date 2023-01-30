@@ -5,6 +5,7 @@
 
 local root = Instance.new("ScreenGui")
 root.Name = "Carbon"
+root.ZIndexBehavior = 1
 local userInputService = game:GetService("UserInputService")
 
 local plr = game.Players.LocalPlayer
@@ -145,7 +146,7 @@ util.addShadow = function(window, size)
             Position = UDim2.new(0.5, 0, 0.5, 0),
             BackgroundColor3 = Color3.new(0, 0, 0),
             BackgroundTransparency = 0.9 + i/100,
-            ZIndex = -1,
+            ZIndex = window.ZIndex - 1,
             AnchorPoint = Vector2.new(0.5, 0.5)
         }), 24)
     end
@@ -227,6 +228,12 @@ carbon = {
             CanvasSize = UDim2.new(0,0,0,0),
             Name = "Content"
         })
+        local sidebar = util.create("Frame", {
+            Size = UDim2.new(0, 120, 0, height),
+            Position = UDim2.new(0, 0, 0, 0),
+            BackgroundColor3 = Color3.fromHex("#1a1b26"),
+            Parent = main
+        })
 
         local topbar = util.create("Frame", {
             Size = UDim2.new(0, width, 0, 30),
@@ -242,12 +249,6 @@ carbon = {
             Parent = topbar,
             BorderSizePixel = 0,
             ZIndex = 2
-        })
-        local sidebar = util.create("Frame", {
-            Size = UDim2.new(0, 120, 0, height),
-            Position = UDim2.new(0, 0, 0, 0),
-            BackgroundColor3 = Color3.fromHex("#1a1b26"),
-            Parent = main
         })
         util.roundify(sidebar, 12)
         util.create("Frame", {
@@ -281,7 +282,7 @@ carbon = {
             TextXAlignment = Enum.TextXAlignment.Left,
             Text = "  " .. title,
             Parent = topbar,
-            ZIndex = 3
+            ZIndex = 100
         })
 
         -- control buttons
@@ -342,6 +343,7 @@ carbon = {
             ScrollBarThickness = 0,
             BorderSizePixel = 0
         })
+        util.roundify(tab, 12)
         util.create("UIPadding", {
             Parent = tab,
             PaddingLeft = UDim.new(0, 5),
@@ -701,7 +703,8 @@ carbon = {
                 Size = UDim2.new(0, 354, 0, 242),
                 Position = UDim2.new(0,mouse.X,0,mouse.Y),
                 Parent = root,
-                Name = "RGBSelection"
+                Name = "RGBSelection",
+                ZIndex = 2
             })
             util.roundify(border, 12)
             util.addShadow(border, 15)
@@ -725,7 +728,8 @@ carbon = {
                 Parent = border,
                 Size = UDim2.new(1, -4, 1, -4),
                 Position = UDim2.new(0, 2, 0, 2),
-                BackgroundColor3 = Color3.fromHex("#1a1b26")
+                BackgroundColor3 = Color3.fromHex("#1a1b26"),
+                ZIndex = 3
             })
             util.roundify(selectionWindow, 12)
             local rgb = util.create("Frame", {
@@ -765,11 +769,23 @@ carbon = {
                     NumberSequenceKeypoint.new(1, 1)
                 })
             })
+            local rgbDetector = util.create("TextButton", {
+                Parent = rgb,
+                Size = UDim2.new(1, 0, 1, 0),
+                BackgroundTransparency = 1,
+                Text = ""
+            })
             local value = util.create("Frame", {
                 Parent = selectionWindow,
                 Size = UDim2.new(0, 21, 0, 200),
                 Position = UDim2.new(0, 220, 0, 10),
                 BorderSizePixel = 0
+            })
+            local valueDetector = util.create("TextButton", {
+                Parent = value,
+                Size = UDim2.new(1, 0, 1, 0),
+                BackgroundTransparency = 1,
+                Text = ""
             })
             local valueGradient = util.create("UIGradient", {
                 Color = ColorSequence.new({
@@ -936,8 +952,12 @@ carbon = {
                 pickingValue = false
             end
 
+            rgbDetector.MouseButton1Down:Connect(beginPicking)
+            valueDetector.MouseButton1Down:Connect(beginPicking)
             mouse.Button1Down:Connect(beginPicking)
             mouse.Button1Up:Connect(endPicking)
+            rgbDetector.MouseButton1Up:Connect(endPicking)
+            valueDetector.MouseButton1Up:Connect(endPicking)
             local function getColorOnOffset(cs, time)
                 if time == 0 then return cs.Keypoints[1].Value end
                 if time == 1 then return cs.Keypoints[#cs.Keypoints].Value end
@@ -1097,7 +1117,9 @@ carbon = {
                     BackgroundTransparency = 1
                 }).MouseButton1Down:Connect(function()
                     callback(v)
-                    selection:Destroy()
+                    root:FindFirstChild(text .. "Sel"):TweenSize(UDim2.new(0, selectBtn.AbsoluteSize.X, 0, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, 0.2, true)
+                    task.delay(0.2, function()root:FindFirstChild(text .. "Sel"):Destroy()end)
+                    indicator.Text = "+"
                     selectBtn.Text = tostring(v)
                 end)
             end
