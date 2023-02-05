@@ -3,6 +3,12 @@
     by woffle#0001
 ]]--
 
+-- SETTINGS
+
+local autoFormatTabs = getgenv()["autoFormatTabs"]
+
+-----------
+
 local root = Instance.new("ScreenGui")
 root.Name = "Carbon"
 root.ZIndexBehavior = 1
@@ -176,7 +182,8 @@ carbon = {
             Size = UDim2.new(0, width + 4, 0, height + 4),
             Position = UDim2.new(0,10,0,10),
             Parent = root,
-            Name = "Carbon"
+            Name = "Carbon",
+            ZIndex = 1
         })
         util.roundify(border, 12)
         util.addShadow(border, 15)
@@ -1191,6 +1198,136 @@ carbon = {
         oldWidget.Size = UDim2.new(0.5, -3, 0, oldWidget.Size.Y.Offset)
         newWidget.Size = UDim2.new(0.5, -3, 0, newWidget.Size.Y.Offset)
         newWidget.Position = oldWidget.Position + UDim2.new(0.5, 3, 0, 0)
+    end,
+    newInfo = function(title, text, buttons, width, height, callback)
+        width = width or 300
+        height = height or 300
+        local border = util.create("Frame", {
+            Size = UDim2.new(0, width, 0, height),
+            Position = UDim2.new(0.5,-width/2,0.5,-height/2),
+            Parent = root,
+            Name = "CarbonInfo",
+            ZIndex = 2
+        })
+        util.roundify(border, 12)
+        util.addShadow(border, 15)
+
+        local gradient = util.create("UIGradient", {
+            Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 212)),
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(153, 0, 255))
+            }),
+            Parent = border,
+            Rotation = 45
+        })
+
+        task.spawn(function()
+            while true do
+                gradient.Rotation += 1
+                task.wait()
+            end
+        end)
+        local main = util.create("Frame", {
+            Parent = border,
+            Size = UDim2.new(1, -4, 1, -4),
+            Position = UDim2.new(0, 2, 0, 2),
+            BackgroundColor3 = Color3.fromHex("#24283b"),
+            ZIndex = 3
+        })
+        util.roundify(main, 12)
+
+        local topbar = util.create("Frame", {
+            Size = UDim2.new(1, 0, 0, 30),
+            Position = UDim2.new(0, 0, 0, 0),
+            BackgroundColor3 = Color3.fromHex("#1a1b26"),
+            Parent = main
+        })
+        util.roundify(topbar, 12)
+        util.create("Frame", {
+            Size = UDim2.new(1, 0, 0, 15),
+            Position = UDim2.new(0, 0, 0, 15),
+            BackgroundColor3 = Color3.fromHex("#1a1b26"),
+            Parent = topbar,
+            BorderSizePixel = 0,
+            ZIndex = 2
+        })
+        util.create("TextLabel", {
+            Size = UDim2.new(1, 0, 0, 30),
+            Position = UDim2.new(0, 0, 0, 0),
+            BackgroundTransparency = 1,
+            Font = Enum.Font.Ubuntu,
+            FontSize = Enum.FontSize.Size18,
+            TextColor3 = Color3.fromHex("#c0caf5"),
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Text = "  " .. title,
+            Parent = topbar,
+            ZIndex = 100
+        })
+
+        util.create("TextLabel", {
+            Parent = main,
+            Size = UDim2.new(1, 0, 1, -30),
+            Position = UDim2.new(0, 0, 0, 30),
+            Text = text,
+            BackgroundTransparency = 1,
+            Font = Enum.Font.Ubuntu,
+            FontSize = Enum.FontSize.Size18,
+            TextColor3 = Color3.fromHex("#c0caf5"),
+            TextWrapped = true
+        })
+        local close = util.create("TextButton", {
+            Size = UDim2.new(0, 15, 0, 15),
+            Position = UDim2.new(1, -20, 0.5, -7.5),
+            BackgroundColor3 = Color3.fromHex("#f7768e"),
+            Parent = topbar,
+            ZIndex = 4,
+            Text = ""
+        })
+        util.roundify(close, 15)
+        close.MouseButton1Down:Connect(function()
+            border:Destroy()
+            return "close"
+        end)
+
+        for i,btn in pairs(buttons) do
+            local nbtn = util.create("TextButton", {
+                Parent = main,
+                BackgroundColor3 = Color3.fromHex("#1a1b26"),
+                Font = Enum.Font.Ubuntu,
+                FontSize = Enum.FontSize.Size18,
+                Text = btn,
+                TextColor3 = Color3.fromHex("#a9b1d6"),
+                Size = UDim2.new(1 / #buttons, -10 - 5*(i-1), 0, 25),
+                AutoButtonColor = false,
+                ClipsDescendants = true,
+                Position = UDim2.new((1 / #buttons) * (i-1), 5 + 5*(i-1),1, -30)
+            })
+            print(nbtn.Position)
+            util.roundify(nbtn, 6)
+            nbtn.MouseButton1Down:Connect(function()
+                callback(btn)
+                local circleEffect = util.create("Frame", {
+                    Parent = nbtn,
+                    BackgroundColor3 = Color3.new(1,1,1),
+                    Size = UDim2.new(0,1,0,1),
+                    Position = UDim2.new(0, mouse.X - nbtn.AbsolutePosition.X, 0, mouse.Y - nbtn.AbsolutePosition.Y),
+                    AnchorPoint = Vector2.new(0.5,0.5)
+                })
+                util.create("UICorner", {
+                    Parent = circleEffect,
+                    CornerRadius = UDim.new(1,0)
+                })
+                task.spawn(function()
+                    for j = 0,40 do
+                        circleEffect.Size += UDim2.new(0,25,0,25)
+                        circleEffect.BackgroundTransparency = j / 40
+                        task.wait()
+                    end
+                    circleEffect:Destroy()
+                end)
+            end)
+        end
+        return border
     end,
     util = util
 }
