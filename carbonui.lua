@@ -3,9 +3,15 @@
     by woffle#0001
 ]]--
 
+local getgenv = getgenv or _G -- idk I guess some shitty exploits might not support getgenv
+
 -- SETTINGS
 
-local autoFormatTabs = getgenv()["autoFormatTabs"]
+local settings_autoFormatTabs = getgenv()["autoFormatTabs"]
+
+local settings_user = getgenv()["user"] or "WoffleTbh"
+local settings_repo = getgenv()["repo"] or "CarbonUI"
+local settings_theme = getgenv()["theme"] or "tokyonight-storm"
 
 -----------
 
@@ -13,10 +19,15 @@ local root = Instance.new("ScreenGui")
 root.Name = "Carbon"
 root.ZIndexBehavior = 1
 local userInputService = game:GetService("UserInputService")
-local ts = game:GetService("TextService")
 
 local plr = game.Players.LocalPlayer
 local mouse = plr:GetMouse()
+
+local loadedTheme
+
+local function loadTheme(theme) loadedTheme = loadstring(game:HttpGet("https://raw.githubusercontent.com/" .. settings_user .. "/" .. settings_repo .. "/main/themes/" .. theme ..".lua"))() end
+
+loadTheme(settings_theme)
 
 local util = {
     create = function(obj, properties)
@@ -241,8 +252,8 @@ carbon = {
 
         local gradient = util.create("UIGradient", {
             Color = ColorSequence.new({
-                ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 212)),
-                ColorSequenceKeypoint.new(1, Color3.fromRGB(153, 0, 255))
+                ColorSequenceKeypoint.new(0, loadedTheme.accent),
+                ColorSequenceKeypoint.new(1, loadedTheme.secondaryAccent)
             }),
             Parent = border,
             Rotation = 45
@@ -257,7 +268,7 @@ carbon = {
         local main = util.create("Frame", {
             Size = UDim2.new(0, width, 0, height),
             Position = UDim2.new(0, 2, 0, 2),
-            BackgroundColor3 = Color3.fromHex("#24283b"),
+            BackgroundColor3 = loadedTheme.background,
             Parent = borderInner
         })
         util.roundify(main, 12)
@@ -274,21 +285,21 @@ carbon = {
         local sidebar = util.create("Frame", {
             Size = UDim2.new(0, 120, 0, height),
             Position = UDim2.new(0, 0, 0, 0),
-            BackgroundColor3 = Color3.fromHex("#1a1b26"),
+            BackgroundColor3 = loadedTheme.topbar,
             Parent = main
         })
 
         local topbar = util.create("Frame", {
             Size = UDim2.new(0, width, 0, 30),
             Position = UDim2.new(0, 0, 0, 0),
-            BackgroundColor3 = Color3.fromHex("#1a1b26"),
+            BackgroundColor3 = loadedTheme.topbar,
             Parent = main
         })
         util.roundify(topbar, 12)
         util.create("Frame", {
             Size = UDim2.new(0, width, 0, 15),
             Position = UDim2.new(0, 0, 0, 15),
-            BackgroundColor3 = Color3.fromHex("#1a1b26"),
+            BackgroundColor3 = loadedTheme.topbar,
             Parent = topbar,
             BorderSizePixel = 0,
             ZIndex = 2
@@ -297,7 +308,7 @@ carbon = {
         util.create("Frame", {
             Size = UDim2.new(0.5, 0, 0, height),
             Position = UDim2.new(0.5, 0, 0),
-            BackgroundColor3 = Color3.fromHex("#1a1b26"),
+            BackgroundColor3 = loadedTheme.topbar,
             Parent = sidebar,
             BorderSizePixel = 0
         })
@@ -321,7 +332,7 @@ carbon = {
             BackgroundTransparency = 1,
             Font = Enum.Font.Ubuntu,
             FontSize = Enum.FontSize.Size18,
-            TextColor3 = Color3.fromHex("#c0caf5"),
+            TextColor3 = loadedTheme.foreground,
             TextXAlignment = Enum.TextXAlignment.Left,
             Text = "  " .. title,
             Parent = topbar,
@@ -333,7 +344,7 @@ carbon = {
         local close = util.create("TextButton", {
             Size = UDim2.new(0, 15, 0, 15),
             Position = UDim2.new(1, -20, 0.5, -7.5),
-            BackgroundColor3 = Color3.fromHex("#f7768e"),
+            BackgroundColor3 = loadedTheme.closeBtnColor,
             Parent = topbar,
             ZIndex = 4,
             Text = ""
@@ -346,7 +357,7 @@ carbon = {
         local minimize = util.create("TextButton", {
             Size = UDim2.new(0, 15, 0, 15),
             Position = UDim2.new(1, -40, 0.5, -7.5),
-            BackgroundColor3 = Color3.fromHex("#e0af68"),
+            BackgroundColor3 = loadedTheme.minimizeBtnColor,
             Parent = topbar,
             ZIndex = 4,
             Text = ""
@@ -408,17 +419,17 @@ carbon = {
 
         local tabBtn = util.create("TextButton", {
             Size = UDim2.new(1,0,0,25),
-            BackgroundColor3 = #win[2]:GetChildren() < 2 and Color3.fromHex("#24283b") or Color3.fromHex("#1a1b26"),
+            BackgroundColor3 = #win[2]:GetChildren() < 2 and loadedTheme.background or loadedTheme.topbar,
             Font = Enum.Font.Ubuntu,
             FontSize = Enum.FontSize.Size18,
             Text = title,
-            TextColor3 = Color3.fromHex("#a9b1d6"),
+            TextColor3 = loadedTheme.secondaryForeground,
             Parent = win[2],
             BorderSizePixel = 0,
         })
 
         tabBtn.MouseButton1Down:Connect(function()
-            if tabBtn.BackgroundColor3 == Color3.fromHex("#24283b") then return end
+            if tabBtn.BackgroundColor3 == loadedTheme.background then return end
             for _,v in pairs(win[3]:GetChildren()) do
                 if v == tab then continue end
                 v:TweenPosition(UDim2.new(0, 0, -1, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quint, 0.5, true)
@@ -427,9 +438,9 @@ carbon = {
             tab:TweenPosition(UDim2.new(0, 0, 0, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quint, 0.5, true)
             for _,v in pairs(win[2]:GetChildren()) do
                 if not v:IsA("TextButton") then continue end
-                v.BackgroundColor3 = Color3.fromHex("#1a1b26")
+                v.BackgroundColor3 = loadedTheme.topbar
             end
-            tabBtn.BackgroundColor3 = Color3.fromHex("#24283b")
+            tabBtn.BackgroundColor3 = loadedTheme.background
         end)
         return tab
     end,
@@ -439,7 +450,7 @@ carbon = {
             util.depend(util.checkTypes({title}, {"string"}), "Category title must be a string!")
         then return end
         local category = util.create("Frame", {
-            BackgroundColor3 = Color3.fromHex("#1a1b26"),
+            BackgroundColor3 = loadedTheme.topbar,
             Parent = tab,
             Name = "category",
             Size = UDim2.new(0.5 + (fullWidth and 0.5 or 0), -5 + (fullWidth and 5 or 0), 0, 25)
@@ -454,13 +465,13 @@ carbon = {
             Font = Enum.Font.Ubuntu,
             FontSize = Enum.FontSize.Size18,
             Text = title,
-            TextColor3 = Color3.fromHex("#a9b1d6"),
+            TextColor3 = loadedTheme.secondaryForeground,
         })
         util.create("Frame", {
             Parent = category,
             Size = UDim2.new(1,0,0,1),
             BorderSizePixel = 0,
-            BackgroundColor3 = Color3.fromHex("#a9b1d6"),
+            BackgroundColor3 = loadedTheme.secondaryForeground,
             Position = UDim2.new(0,0,0,20)
         })
         local categoryContent = util.create("ScrollingFrame", {
@@ -473,9 +484,11 @@ carbon = {
             CanvasSize = UDim2.new(0, 0, 0, 0)
         })
         categoryContent.ChildAdded:Connect(function(child)
-            if not child:IsA("GuiObject") then return end
-            category.Size += UDim2.new(0, 0, 0, child.AbsoluteSize.Y + 5)
-            util.formatTab(tab)
+            if settings_autoFormatTabs then
+                if not child:IsA("GuiObject") then return end
+                category.Size += UDim2.new(0, 0, 0, child.AbsoluteSize.Y + 5)
+                util.formatTab(tab)
+            end
         end)
         util.create("UIPadding", {
             Parent = categoryContent,
@@ -484,6 +497,9 @@ carbon = {
             PaddingBottom = UDim.new(0, 5),
             PaddingRight = UDim.new(0, 5)
         })
+        if settings_autoFormatTabs then
+            util.formatTab(tab) -- empty categories would fuck up fomatting
+        end
         return categoryContent
     end,
     addButton = function(category, text, callback)
@@ -493,11 +509,11 @@ carbon = {
         then return end
         local btn = util.create("TextButton", {
             Parent = category,
-            BackgroundColor3 = Color3.fromHex("#24283b"),
+            BackgroundColor3 = loadedTheme.background,
             Font = Enum.Font.Ubuntu,
             FontSize = Enum.FontSize.Size18,
             Text = text,
-            TextColor3 = Color3.fromHex("#a9b1d6"),
+            TextColor3 = loadedTheme.secondaryForeground,
             Size = UDim2.new(1, 0, 0, 25),
             AutoButtonColor = false,
             ClipsDescendants = true,
@@ -535,7 +551,7 @@ carbon = {
         then return end
         local toggleBg = util.create("Frame", {
             Parent = category,
-            BackgroundColor3 = Color3.fromHex("#24283b"),
+            BackgroundColor3 = loadedTheme.background,
             Size = UDim2.new(1, 0, 0, 25),
             Position = UDim2.new(0,0,0,util.getPos(category)),
         })
@@ -545,7 +561,7 @@ carbon = {
             Parent = toggleBg,
             Size = UDim2.new(0,21,0,21),
             Position = UDim2.new(0,2,0,2),
-            BackgroundColor3 = Color3.fromHex("#1a1b26"),
+            BackgroundColor3 = loadedTheme.topbar,
             AutoButtonColor = false
         })
         local toggleDisplay = toggle:Clone()
@@ -561,7 +577,7 @@ carbon = {
             Font = Enum.Font.Ubuntu,
             FontSize = Enum.FontSize.Size18,
             Text = "  " .. text,
-            TextColor3 = Color3.fromHex("#a9b1d6"),
+            TextColor3 = loadedTheme.secondaryForeground,
             Parent = toggleBg,
             Position = UDim2.new(0,23,0,0),
             Size = UDim2.new(1,-23,1,0),
@@ -594,7 +610,7 @@ carbon = {
         decimalPercision = math.clamp(decimalPercision, 0, math.huge)
         local slidereBg = util.create("Frame", {
             Parent = category,
-            BackgroundColor3 = Color3.fromHex("#24283b"),
+            BackgroundColor3 = loadedTheme.background,
             Size = UDim2.new(1, 0, 0, 50),
             Position = UDim2.new(0,0,0,util.getPos(category)),
         })
@@ -604,7 +620,7 @@ carbon = {
             Parent = slidereBg,
             Size = UDim2.new(1,-20,0,7),
             Position = UDim2.new(0,10, 1,-19),
-            BackgroundColor3 = Color3.fromHex("#1a1b26"),
+            BackgroundColor3 = loadedTheme.topbar,
             AutoButtonColor = false
         })
         local bar = barBg:Clone()
@@ -618,7 +634,7 @@ carbon = {
             Font = Enum.Font.Ubuntu,
             FontSize = Enum.FontSize.Size18,
             Text = "  " .. text,
-            TextColor3 = Color3.fromHex("#a9b1d6"),
+            TextColor3 = loadedTheme.secondaryForeground,
             Parent = slidereBg,
             Position = UDim2.new(0,0,0,0),
             Size = UDim2.new(1,0,0.5,0),
@@ -629,7 +645,7 @@ carbon = {
             Font = Enum.Font.Ubuntu,
             FontSize = Enum.FontSize.Size18,
             Text = tostring(math.clamp(default, min, max)) .. "  ",
-            TextColor3 = Color3.fromHex("#a9b1d6"),
+            TextColor3 = loadedTheme.secondaryForeground,
             Parent = slidereBg,
             Position = UDim2.new(0,0,0,0),
             Size = UDim2.new(1,0,0.5,0),
@@ -669,7 +685,7 @@ carbon = {
         then return end
         local inputBg = util.create("Frame", {
             Parent = category,
-            BackgroundColor3 = Color3.fromHex("#24283b"),
+            BackgroundColor3 = loadedTheme.background,
             Size = UDim2.new(1, 0, 0, 25),
             Position = UDim2.new(0,0,0,util.getPos(category)),
         })
@@ -678,7 +694,7 @@ carbon = {
             Font = Enum.Font.Ubuntu,
             FontSize = Enum.FontSize.Size18,
             Text = "  " .. text,
-            TextColor3 = Color3.fromHex("#a9b1d6"),
+            TextColor3 = loadedTheme.secondaryForeground,
             Parent = inputBg,
             Position = UDim2.new(0,0,0,0),
             Size = UDim2.new(0.5,0,1,0),
@@ -690,11 +706,11 @@ carbon = {
             Font = Enum.Font.Ubuntu,
             FontSize = Enum.FontSize.Size18,
             ClearTextOnFocus = false,
-            TextColor3 = Color3.fromHex("#a9b1d6"),
+            TextColor3 = loadedTheme.secondaryForeground,
             Parent = inputBg,
             Position = UDim2.new(0.5,-2,0,2),
             Size = UDim2.new(0.5,0,1,-4),
-            BackgroundColor3 = Color3.fromHex("#1a1b26"),
+            BackgroundColor3 = loadedTheme.topbar,
             TextXAlignment = Enum.TextXAlignment.Center
         })
         util.roundify(input, 6)
@@ -710,7 +726,7 @@ carbon = {
         then return end
         local bg = util.create("Frame", {
             Parent = category,
-            BackgroundColor3 = Color3.fromHex("#24283b"),
+            BackgroundColor3 = loadedTheme.background,
             Size = UDim2.new(1, 0, 0, 25),
             Position = UDim2.new(0,0,0,util.getPos(category)),
         })
@@ -719,7 +735,7 @@ carbon = {
             Font = Enum.Font.Ubuntu,
             FontSize = Enum.FontSize.Size18,
             Text = "  " .. text,
-            TextColor3 = Color3.fromHex("#a9b1d6"),
+            TextColor3 = loadedTheme.secondaryForeground,
             Parent = bg,
             Position = UDim2.new(0,0,0,0),
             Size = UDim2.new(0.5,0,1,0),
@@ -730,7 +746,7 @@ carbon = {
             Text = "",
             Font = Enum.Font.Ubuntu,
             FontSize = Enum.FontSize.Size18,
-            TextColor3 = Color3.fromHex("#a9b1d6"),
+            TextColor3 = loadedTheme.secondaryForeground,
             Parent = bg,
             Position = UDim2.new(1,-23,0,2),
             Size = UDim2.new(0,21,0,21),
@@ -771,7 +787,7 @@ carbon = {
                 Parent = border,
                 Size = UDim2.new(1, -4, 1, -4),
                 Position = UDim2.new(0, 2, 0, 2),
-                BackgroundColor3 = Color3.fromHex("#1a1b26"),
+                BackgroundColor3 = loadedTheme.topbar,
                 ZIndex = 3
             })
             util.roundify(selectionWindow, 12)
@@ -867,11 +883,11 @@ carbon = {
                 Parent = selectionWindow,
                 Size = UDim2.new(0, 90, 0, 25),
                 Position = UDim2.new(0, 250, 0, 125),
-                BackgroundColor3 = Color3.fromHex("#24283b"),
+                BackgroundColor3 = loadedTheme.background,
                 Text = "",
                 Font = Enum.Font.Ubuntu,
                 FontSize = Enum.FontSize.Size18,
-                TextColor3 = Color3.fromHex("#a9b1d6"),
+                TextColor3 = loadedTheme.secondaryForeground,
                 PlaceholderText = "#FFFFFF"
             })
 
@@ -881,11 +897,11 @@ carbon = {
                 Parent = selectionWindow,
                 Size = UDim2.new(0, 25, 0, 25),
                 Position = UDim2.new(0, 250, 0, 155),
-                BackgroundColor3 = Color3.fromHex("#24283b"),
+                BackgroundColor3 = loadedTheme.background,
                 Text = "",
                 Font = Enum.Font.Ubuntu,
                 FontSize = Enum.FontSize.Size14,
-                TextColor3 = Color3.fromHex("#a9b1d6"),
+                TextColor3 = loadedTheme.secondaryForeground,
                 PlaceholderText = "r"
             })
 
@@ -953,8 +969,8 @@ carbon = {
                 Text = "Confirm",
                 Font = Enum.Font.Ubuntu,
                 FontSize = Enum.FontSize.Size18,
-                TextColor3 = Color3.fromHex("#a9b1d6"),
-                BackgroundColor3 = Color3.fromHex("#24283b")
+                TextColor3 = loadedTheme.secondaryForeground,
+                BackgroundColor3 = loadedTheme.background
             })
 
             local btnCancel = util.create("TextButton", {
@@ -964,8 +980,8 @@ carbon = {
                 Text = "Cancel",
                 Font = Enum.Font.Ubuntu,
                 FontSize = Enum.FontSize.Size18,
-                TextColor3 = Color3.fromHex("#a9b1d6"),
-                BackgroundColor3 = Color3.fromHex("#24283b")
+                TextColor3 = loadedTheme.secondaryForeground,
+                BackgroundColor3 = loadedTheme.background
             })
 
             util.roundify(btnConfirm, 6)
@@ -1075,11 +1091,11 @@ carbon = {
         then return end
         return util.roundify(util.create("TextLabel", {
             Parent = category,
-            BackgroundColor3 = Color3.fromHex("#24283b"),
+            BackgroundColor3 = loadedTheme.background,
             Font = Enum.Font.Ubuntu,
             FontSize = Enum.FontSize.Size18,
             Text = text,
-            TextColor3 = Color3.fromHex("#a9b1d6"),
+            TextColor3 = loadedTheme.secondaryForeground,
             Size = UDim2.new(1, 0, 0, 25),
             Position = UDim2.new(0,0,0,util.getPos(category))
         }), 6)
@@ -1091,7 +1107,7 @@ carbon = {
         then return end
         local dropdownBg = util.create("Frame", {
             Parent = category,
-            BackgroundColor3 = Color3.fromHex("#24283b"),
+            BackgroundColor3 = loadedTheme.background,
             Size = UDim2.new(1, 0, 0, 25),
             Position = UDim2.new(0,0,0,util.getPos(category)),
         })
@@ -1100,7 +1116,7 @@ carbon = {
             Font = Enum.Font.Ubuntu,
             FontSize = Enum.FontSize.Size18,
             Text = "  " .. text,
-            TextColor3 = Color3.fromHex("#a9b1d6"),
+            TextColor3 = loadedTheme.secondaryForeground,
             Parent = dropdownBg,
             Position = UDim2.new(0,0,0,0),
             Size = UDim2.new(0.5,0,1,0),
@@ -1111,11 +1127,11 @@ carbon = {
             Text = default, -- Doesn't have to be in the list of values in case it's "none" or something
             Font = Enum.Font.Ubuntu,
             FontSize = Enum.FontSize.Size18,
-            TextColor3 = Color3.fromHex("#a9b1d6"),
+            TextColor3 = loadedTheme.secondaryForeground,
             Parent = dropdownBg,
             Position = UDim2.new(0.5,-2,0,2),
             Size = UDim2.new(0.5,0,1,-4),
-            BackgroundColor3 = Color3.fromHex("#1a1b26"),
+            BackgroundColor3 = loadedTheme.topbar,
             TextXAlignment = Enum.TextXAlignment.Center
         })
         util.roundify(selectBtn, 6)
@@ -1123,7 +1139,7 @@ carbon = {
             Text = "+",
             Font = Enum.Font.Ubuntu,
             FontSize = Enum.FontSize.Size18,
-            TextColor3 = Color3.fromHex("#a9b1d6"),
+            TextColor3 = loadedTheme.secondaryForeground,
             Size = UDim2.new(0, 21, 0, 21),
             Position = UDim2.new(1,-21,0,0),
             Parent = selectBtn,
@@ -1141,7 +1157,7 @@ carbon = {
                 Parent = root,
                 Size = UDim2.new(0, selectBtn.AbsoluteSize.X, 0, 0),
                 Position = UDim2.new(0, selectBtn.AbsolutePosition.X, 0, selectBtn.AbsolutePosition.Y + selectBtn.AbsoluteSize.Y),
-                BackgroundColor3 = Color3.fromHex("#1a1b26"),
+                BackgroundColor3 = loadedTheme.topbar,
                 Name = text .. "Sel",
                 ClipsDescendants = true
             })
@@ -1156,7 +1172,7 @@ carbon = {
                     Text = tostring(v),
                     Font = Enum.Font.Ubuntu,
                     FontSize = Enum.FontSize.Size18,
-                    TextColor3 = Color3.fromHex("#a9b1d6"),
+                    TextColor3 = loadedTheme.secondaryForeground,
                     BackgroundTransparency = 1
                 }).MouseButton1Down:Connect(function()
                     callback(v)
@@ -1177,7 +1193,7 @@ carbon = {
         then return end
         local kbBg = util.create("Frame", {
             Parent = category,
-            BackgroundColor3 = Color3.fromHex("#24283b"),
+            BackgroundColor3 = loadedTheme.background,
             Size = UDim2.new(1, 0, 0, 25),
             Position = UDim2.new(0,0,0,util.getPos(category)),
         })
@@ -1186,7 +1202,7 @@ carbon = {
             Font = Enum.Font.Ubuntu,
             FontSize = Enum.FontSize.Size18,
             Text = "  " .. text,
-            TextColor3 = Color3.fromHex("#a9b1d6"),
+            TextColor3 = loadedTheme.secondaryForeground,
             Parent = kbBg,
             Position = UDim2.new(0,0,0,0),
             Size = UDim2.new(0.5,0,1,0),
@@ -1197,11 +1213,11 @@ carbon = {
             Text = "[ Keybind ]",
             Font = Enum.Font.Ubuntu,
             FontSize = Enum.FontSize.Size18,
-            TextColor3 = Color3.fromHex("#a9b1d6"),
+            TextColor3 = loadedTheme.secondaryForeground,
             Parent = kbBg,
             Position = UDim2.new(0.5,-2,0,2),
             Size = UDim2.new(0.5,0,1,-4),
-            BackgroundColor3 = Color3.fromHex("#1a1b26"),
+            BackgroundColor3 = loadedTheme.topbar,
             TextXAlignment = Enum.TextXAlignment.Center
         })
         util.roundify(key, 6)
@@ -1267,7 +1283,7 @@ carbon = {
             Parent = border,
             Size = UDim2.new(1, -4, 1, -4),
             Position = UDim2.new(0, 2, 0, 2),
-            BackgroundColor3 = Color3.fromHex("#24283b"),
+            BackgroundColor3 = loadedTheme.background,
             ZIndex = 3
         })
         util.roundify(main, 12)
@@ -1275,14 +1291,14 @@ carbon = {
         local topbar = util.create("Frame", {
             Size = UDim2.new(1, 0, 0, 30),
             Position = UDim2.new(0, 0, 0, 0),
-            BackgroundColor3 = Color3.fromHex("#1a1b26"),
+            BackgroundColor3 = loadedTheme.topbar,
             Parent = main
         })
         util.roundify(topbar, 12)
         util.create("Frame", {
             Size = UDim2.new(1, 0, 0, 15),
             Position = UDim2.new(0, 0, 0, 15),
-            BackgroundColor3 = Color3.fromHex("#1a1b26"),
+            BackgroundColor3 = loadedTheme.topbar,
             Parent = topbar,
             BorderSizePixel = 0,
             ZIndex = 2
@@ -1293,7 +1309,7 @@ carbon = {
             BackgroundTransparency = 1,
             Font = Enum.Font.Ubuntu,
             FontSize = Enum.FontSize.Size18,
-            TextColor3 = Color3.fromHex("#c0caf5"),
+            TextColor3 = loadedTheme.foreground,
             TextXAlignment = Enum.TextXAlignment.Left,
             Text = "  " .. title,
             Parent = topbar,
@@ -1308,13 +1324,13 @@ carbon = {
             BackgroundTransparency = 1,
             Font = Enum.Font.Ubuntu,
             FontSize = Enum.FontSize.Size18,
-            TextColor3 = Color3.fromHex("#c0caf5"),
+            TextColor3 = loadedTheme.foreground,
             TextWrapped = true
         })
         local close = util.create("TextButton", {
             Size = UDim2.new(0, 15, 0, 15),
             Position = UDim2.new(1, -20, 0.5, -7.5),
-            BackgroundColor3 = Color3.fromHex("#f7768e"),
+            BackgroundColor3 = loadedTheme.closeBtnColor,
             Parent = topbar,
             ZIndex = 4,
             Text = ""
@@ -1328,11 +1344,11 @@ carbon = {
         for i,btn in pairs(buttons) do
             local nbtn = util.create("TextButton", {
                 Parent = main,
-                BackgroundColor3 = Color3.fromHex("#1a1b26"),
+                BackgroundColor3 = loadedTheme.topbar,
                 Font = Enum.Font.Ubuntu,
                 FontSize = Enum.FontSize.Size18,
                 Text = btn,
-                TextColor3 = Color3.fromHex("#a9b1d6"),
+                TextColor3 = loadedTheme.secondaryForeground,
                 Size = UDim2.new(1 / #buttons, -10 - 5*(i-1), 0, 25),
                 AutoButtonColor = false,
                 ClipsDescendants = true,
@@ -1419,7 +1435,7 @@ carbon = {
         end)
         local hover = util.create("Frame", {
             Parent = border,
-            BackgroundColor3 = Color3.fromHex("#1a1b26"),
+            BackgroundColor3 = loadedTheme.topbar,
             Size = UDim2.new(1, -4, 1, -4),
             Position = UDim2.new(0, 2, 0, 2)
         })
@@ -1431,7 +1447,7 @@ carbon = {
             Position = UDim2.new(0, 0, 0, 0),
             Font = Enum.Font.Ubuntu,
             FontSize = Enum.FontSize.Size18,
-            TextColor3 = Color3.fromHex("#a9b1d6"),
+            TextColor3 = loadedTheme.secondaryForeground,
             Text = "  " .. title,
             BackgroundTransparency = 1,
             TextXAlignment = Enum.TextXAlignment.Left,
@@ -1443,7 +1459,7 @@ carbon = {
             Position = UDim2.new(0, 1, 0, 21),
             Font = Enum.Font.Ubuntu,
             FontSize = Enum.FontSize.Size18,
-            TextColor3 = Color3.fromHex("#a9b1d6"),
+            TextColor3 = loadedTheme.secondaryForeground,
             Text = "  " .. msg,
             BackgroundTransparency = 1,
             TextXAlignment = Enum.TextXAlignment.Left,
@@ -1456,7 +1472,8 @@ carbon = {
             shadow:Destroy()
         end)
     end,
-    util = util
+    util = util,
+    loadTheme = loadTheme -- Might move into util, though it's not as clean (util is mostly reserved for developer shit)
 }
 
 if gethui and gethui():FindFirstChild(root.Name) then
