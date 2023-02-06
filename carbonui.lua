@@ -58,7 +58,7 @@ local util = {
         task.spawn(function()
             while true do
                 if dragging then
-                    if w.Parent.Name == "Shadow" then
+                    if w.Parent and w.Parent.Name == "Shadow" then
                         w.Parent.Position = UDim2.new(0, mouse.X - offsetX, 0, mouse.Y - offsetY)
                     else
                         w.Position = UDim2.new(0, mouse.X - offsetX, 0, mouse.Y - offsetY)
@@ -143,7 +143,10 @@ local util = {
             end
             table.remove(categories, largestIdx)
         end
-        local offY = fw[1].Position.Y.Offset + fw[1].Size.Y.Offset + 5
+        local offY = 0
+        if #fw > 0 then
+            offY = fw[1].Position.Y.Offset + fw[1].Size.Y.Offset + 5
+        end
         for i,category in pairs(fw) do
             if i == 1 then continue end
             category.Position = UDim2.new(0, 0, 0, fw[i-1].Position.Y.Offset + fw[i-1].Size.Y.Offset + 5)
@@ -747,7 +750,7 @@ carbon = {
                 ZIndex = 2
             })
             util.roundify(border, 12)
-            border = util.addShadow(border, 15)
+            local shadow = util.addShadow(border, 15)
 
             local gradient = util.create("UIGradient", {
                 Color = ColorSequence.new({
@@ -969,12 +972,12 @@ carbon = {
             util.roundify(btnCancel, 6)
 
             btnCancel.MouseButton1Down:Connect(function()
-                border:Destroy()
+                shadow:Destroy()
             end)
             btnConfirm.MouseButton1Down:Connect(function()
                 callback(preview.BackgroundColor3)
                 colorBtn.BackgroundColor3 = preview.BackgroundColor3
-                border:Destroy()
+                shadow:Destroy()
             end)
 
             local picking = false
@@ -1243,7 +1246,7 @@ carbon = {
             ZIndex = 2
         })
         util.roundify(border, 12)
-        border = util.addShadow(border, 15)
+        local shadow = util.addShadow(border, 15)
 
         local gradient = util.create("UIGradient", {
             Color = ColorSequence.new({
@@ -1318,7 +1321,7 @@ carbon = {
         })
         util.roundify(close, 15)
         close.MouseButton1Down:Connect(function()
-            border:Destroy()
+            shadow:Destroy()
             return "close"
         end)
 
@@ -1360,7 +1363,7 @@ carbon = {
                 end)
             end)
         end
-        return border
+        return shadow
     end,
     newNotif = function(type_, title, msg)
         for _,v in pairs(root:GetChildren()) do
