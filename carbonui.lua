@@ -13,6 +13,7 @@ local root = Instance.new("ScreenGui")
 root.Name = "Carbon"
 root.ZIndexBehavior = 1
 local userInputService = game:GetService("UserInputService")
+local ts = game:GetService("TextService")
 
 local plr = game.Players.LocalPlayer
 local mouse = plr:GetMouse()
@@ -43,7 +44,7 @@ local util = {
             offsetX, offsetY = mouse.X - w.AbsolutePosition.X, mouse.Y - w.AbsolutePosition.Y
             dragging = not (offsetX < 0 or offsetY < 0 or offsetX > w.AbsoluteSize.X or offsetY > w.AbsoluteSize.Y)
             for _,ow in pairs(root:GetChildren()) do
-                if ow == w then continue end
+                if ow == w or w.Parent == ow then continue end
                 local _offsetX, _offsetY = mouse.X - ow.AbsolutePosition.X, mouse.Y - ow.AbsolutePosition.Y
                 if not (_offsetX < 0 or _offsetY < 0 or _offsetX > ow.AbsoluteSize.X or _offsetY > ow.AbsoluteSize.Y) then
                     dragging = false
@@ -57,7 +58,11 @@ local util = {
         task.spawn(function()
             while true do
                 if dragging then
-                    w.Position = UDim2.new(0, mouse.X - offsetX, 0, mouse.Y - offsetY)
+                    if w.Parent.Name == "Shadow" then
+                        w.Parent.Position = UDim2.new(0, mouse.X - offsetX, 0, mouse.Y - offsetY)
+                    else
+                        w.Position = UDim2.new(0, mouse.X - offsetX, 0, mouse.Y - offsetY)
+                    end
                 end
                 task.wait()
             end
@@ -109,18 +114,26 @@ local util = {
         end
         local row1 = {}
         local row2 = {}
+        local fw = {}
         local cr = 1
         while #categories > 0 do
             local largest
             local largestIdx
             local largestSize = 0
+            local ifw
             for i,v in pairs(categories) do
                 if v.Size.Y.Offset > largestSize then
                     largest = v
                     largestIdx = i
                     largestSize = v.Size.Y.Offset
                 end
+                if v.Size.X.Scale == 1 then
+                    table.insert(fw, v)
+                    table.remove(categories, i)
+                    ifw = true
+                end
             end
+            if ifw then continue end
             if cr == 1 then
                 row1[#row1+1] = largest
                 cr = 2
@@ -130,24 +143,43 @@ local util = {
             end
             table.remove(categories, largestIdx)
         end
-        for i,category in pairs(row1) do
+        local offY = fw[1].Position.Y.Offset + fw[1].Size.Y.Offset + 5
+        for i,category in pairs(fw) do
             if i == 1 then continue end
-            category.Position = UDim2.new(0, 0, 0, row1[i-1].Position.Y.Offset + row1[i-1].Size.Y.Offset + 5)
+            category.Position = UDim2.new(0, 0, 0, fw[i-1].Position.Y.Offset + fw[i-1].Size.Y.Offset + 5)
+            offY += fw[i-1].Position.Y.Offset + fw[i-1].Size.Y.Offset + 5
+        end
+        for i,category in pairs(row1) do
+            if i == 1 then
+                category.Position = UDim2.new(0, 5, 0, offY)
+                continue
+            end
+            category.Position = UDim2.new(0, 0, 0, row1[i-1].Position.Y.Offset + row1[i-1].Size.Y.Offset + 5 + offY)
         end
         for i,category in pairs(row2) do
             if i == 1 then
-                category.Position = UDim2.new(0.5, 5, 0, 0)
+                category.Position = UDim2.new(0.5, 5, 0, offY)
                 continue
             end
-            category.Position = UDim2.new(0.5, 5, 0, row2[i-1].Position.Y.Offset + row2[i-1].Size.Y.Offset + 5)
+            category.Position = UDim2.new(0.5, 5, 0, row2[i-1].Position.Y.Offset + row2[i-1].Size.Y.Offset + 5 + offY)
         end
     end
 }
 util.addShadow = function(window, size)
     size = size / 10
+    local shadow = util.create("Frame", {
+        BackgroundTransparency = 1,
+        Size = window.Size,
+        Position = window.Position,
+        Parent = root,
+        Name = "Shadow"
+    })
+    window.Parent = shadow
+    window.Position = UDim2.new(0, 0, 0, 0)
+    window.ZIndex += 1
     for i = 0, 9 do
         util.roundify(util.create("Frame", {
-            Parent = window,
+            Parent = shadow,
             Size = UDim2.new(1, size * (i+1)*2, 1, size * (i+1)*2),
             Position = UDim2.new(0.5, 0, 0.5, 0),
             BackgroundColor3 = Color3.new(0, 0, 0),
@@ -156,6 +188,7 @@ util.addShadow = function(window, size)
             AnchorPoint = Vector2.new(0.5, 0.5)
         }), 24)
     end
+    return shadow
 end
 
 local bindingFunc = function(k) end
@@ -397,7 +430,7 @@ carbon = {
         end)
         return tab
     end,
-    addCategory = function(tab, title)
+    addCategory = function(tab, title, fullWidth)
         if not
             util.depend(tab.Name == "Tab", "Can't add a category to a non-tab.") or not
             util.depend(util.checkTypes({title}, {"string"}), "Category title must be a string!")
@@ -406,7 +439,7 @@ carbon = {
             BackgroundColor3 = Color3.fromHex("#1a1b26"),
             Parent = tab,
             Name = "category",
-            Size = UDim2.new(0.5, -5, 0, 25)
+            Size = UDim2.new(0.5 + (fullWidth and 0.5 or 0), -5 + (fullWidth and 5 or 0), 0, 25)
         })
 
         util.roundify(category, 12)
@@ -714,7 +747,7 @@ carbon = {
                 ZIndex = 2
             })
             util.roundify(border, 12)
-            util.addShadow(border, 15)
+            border = util.addShadow(border, 15)
 
             local gradient = util.create("UIGradient", {
                 Color = ColorSequence.new({
@@ -1210,7 +1243,7 @@ carbon = {
             ZIndex = 2
         })
         util.roundify(border, 12)
-        util.addShadow(border, 15)
+        border = util.addShadow(border, 15)
 
         local gradient = util.create("UIGradient", {
             Color = ColorSequence.new({
@@ -1328,6 +1361,97 @@ carbon = {
             end)
         end
         return border
+    end,
+    newNotif = function(type_, title, msg)
+        for _,v in pairs(root:GetChildren()) do
+            if v:FindFirstChild("Notif") then
+                if v.Position.X.Offset == 0 then continue end
+                v:TweenPosition(UDim2.new(1, -250, 0, v.AbsolutePosition.Y - 100), Enum.EasingDirection.Out, Enum.EasingStyle.Quint, 0.25, false)
+            end
+        end
+        local border = util.create("Frame", {
+            Size = UDim2.new(0, 254, 0, 77),
+            Position = UDim2.new(1, 0, 1, -100),
+            Parent = root,
+            Name = "Notif",
+            ZIndex = 2
+        })
+        util.roundify(border, 12)
+        local shadow = util.addShadow(border, 15)
+
+        local colors = {
+            ERR = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(121, 0, 0))
+            }),
+            OK = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 255, 0)),
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 121, 0))
+            }),
+            WARN = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 0)),
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(121, 121, 0))
+            }),
+            INFO = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 183, 255)),
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 86, 136))
+            }),
+            MSG = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 212)),
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(153, 0, 255))
+            }),
+        }
+
+        local gradient = util.create("UIGradient", {
+            Color = colors[type_],
+            Parent = border,
+            Rotation = 45
+        })
+
+        task.spawn(function()
+            while true do
+                gradient.Rotation += 1
+                task.wait()
+            end
+        end)
+        local hover = util.create("Frame", {
+            Parent = border,
+            BackgroundColor3 = Color3.fromHex("#1a1b26"),
+            Size = UDim2.new(1, -4, 1, -4),
+            Position = UDim2.new(0, 2, 0, 2)
+        })
+        util.roundify(hover, 12)
+
+        util.create("TextLabel", {
+            Parent = hover,
+            Size = UDim2.new(1, 0, 0, 20),
+            Position = UDim2.new(0, 0, 0, 0),
+            Font = Enum.Font.Ubuntu,
+            FontSize = Enum.FontSize.Size18,
+            TextColor3 = Color3.fromHex("#a9b1d6"),
+            Text = "  " .. title,
+            BackgroundTransparency = 1,
+            TextXAlignment = Enum.TextXAlignment.Left,
+        })
+
+        util.create("TextLabel", {
+            Parent = hover,
+            Size = UDim2.new(1, -2, 1, -22),
+            Position = UDim2.new(0, 1, 0, 21),
+            Font = Enum.Font.Ubuntu,
+            FontSize = Enum.FontSize.Size18,
+            TextColor3 = Color3.fromHex("#a9b1d6"),
+            Text = "  " .. msg,
+            BackgroundTransparency = 1,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            TextYAlignment = Enum.TextYAlignment.Top,
+        })
+        shadow:TweenPosition(UDim2.new(1, -250, 0, border.AbsolutePosition.Y), Enum.EasingDirection.Out, Enum.EasingStyle.Quint, 0.25, true)
+        task.delay(5, function()
+            shadow:TweenPosition(UDim2.new(1, 0, 0, border.AbsolutePosition.Y), Enum.EasingDirection.Out, Enum.EasingStyle.Quint, 0.25, true)
+            wait(0.25)
+            shadow:Destroy()
+        end)
     end,
     util = util
 }
