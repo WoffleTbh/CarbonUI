@@ -7,7 +7,7 @@ local getgenv = getgenv or _G -- idk I guess some shitty exploits might not supp
 
 -- SETTINGS
 
-local settings_autoFormatTabs = getgenv()["autoFormatTabs"]
+local settings_autoFormatTabs = getgenv()["autoFormatTabs"] or true
 
 local settings_user = getgenv()["user"] or "WoffleTbh"
 local settings_repo = getgenv()["repo"] or "CarbonUI"
@@ -26,6 +26,7 @@ local mouse = plr:GetMouse()
 local loadedTheme
 
 local function loadTheme(theme) loadedTheme = loadstring(game:HttpGet("https://raw.githubusercontent.com/" .. settings_user .. "/" .. settings_repo .. "/main/themes/" .. theme ..".lua"))() end
+local function loadThemeFromFile(fileName) loadTheme = loadstring(readfile(fileName))() end
 
 loadTheme(settings_theme)
 
@@ -165,7 +166,7 @@ local util = {
         end
         for i,category in pairs(row1) do
             if i == 1 then
-                category.Position = UDim2.new(0, 5, 0, offY)
+                category.Position = UDim2.new(0, 0, 0, offY)
                 continue
             end
             category.Position = UDim2.new(0, 0, 0, row1[i-1].Position.Y.Offset + row1[i-1].Size.Y.Offset + 5 + offY)
@@ -767,6 +768,7 @@ carbon = {
             })
             util.roundify(border, 12)
             local shadow = util.addShadow(border, 15)
+            shadow.Name = "RGBSelection"
 
             local gradient = util.create("UIGradient", {
                 Color = ColorSequence.new({

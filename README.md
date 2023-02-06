@@ -17,10 +17,6 @@ getgenv().repo = "CarbonUI"
 getgenv().theme = "tokyonight-storm" -- Default theme
 local carbon = loadstring(game:HttpGet("https://raw.githubusercontent.com/WoffleTbh/CarbonUI/main/carbonui.lua"))()
 ```
-Or you can dynamically load a new theme:
-```lua
-carbon.loadTheme("tokyonight-storm") -- Default theme
-```
 More theme docs are in the `themes` folder.
 ### Examples
 Code used in preview:

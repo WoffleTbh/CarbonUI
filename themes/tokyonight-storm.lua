@@ -4,6 +4,7 @@ return {
     accent = Color3.fromRGB(255, 0, 212),
     secondaryAccent = Color3.fromRGB(153, 0, 255),
     foreground = Color3.fromRGB(161, 168, 204),
+    secondaryForeground = Color3.fromRGB(161, 168, 204),
 
     cornerRadius = 12,
     widgetCornerRadius = 6,
