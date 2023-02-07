@@ -26,7 +26,7 @@ local mouse = plr:GetMouse()
 local loadedTheme
 
 local function loadTheme(theme) loadedTheme = loadstring(game:HttpGet("https://raw.githubusercontent.com/" .. settings_user .. "/" .. settings_repo .. "/main/themes/" .. theme ..".lua"))() end
-local function loadThemeFromFile(fileName) loadTheme = loadstring(readfile(fileName))() end
+local function loadThemeFromFile(fileName) loadedTheme = loadstring(readfile(fileName))() end
 
 loadTheme(settings_theme)
 
@@ -39,6 +39,24 @@ local util = {
         end
         if properties["Parent"] then
             o.Parent = properties["Parent"]
+        end
+        if properties["BorderSizePixel"] then return o end -- Prevent fancy stuff from happening on explicitly no-border stuff
+        if o:IsA("GuiObject") then
+            o.BorderSizePixel = 0
+        end
+        if o:IsA("GuiObject") and o.Parent and (o.Parent.Name == "inner" or o.Parent.Name == "main" or o.Parent.Name == "RGBSelection" or o.Parent.Name == "CarbonInfo" or o.Parent.Name == "Notif") then
+            o.BorderSizePixel = loadedTheme["robloxBorder"]["window"]["size"]
+            o.BorderColor3 = loadedTheme["robloxBorder"]["window"]["color"]
+        end
+        if o:IsA("GuiObject") and o.Parent and o.Parent.Parent and (o.Parent.Parent.Name == "category" or o.Parent.Name == "Tab" or o.Parent.Name == "selection") then
+            o.BorderSizePixel = loadedTheme["widget"]["border"]["size"]
+            o.BorderColor3 = loadedTheme["widget"]["border"]["color"]
+            o.BorderMode = loadedTheme["widget"]["border"]["type"] == "inner" and Enum.BorderMode.Inset or Enum.BorderMode.Outline
+        end
+        if o:IsA("GuiObject") and o.Parent and o.Parent.Parent and o.Parent.Parent.Parent and o.Parent.Parent.Parent.Name == "category" and loadedTheme["widget"]["border"]["useBorderOnExtras"] then
+            o.BorderSizePixel = loadedTheme["widget"]["border"]["size"]
+            o.BorderColor3 = loadedTheme["widget"]["border"]["color"]
+            o.BorderMode = loadedTheme["widget"]["border"]["type"] == "inner" and Enum.BorderMode.Inset or Enum.BorderMode.Outline
         end
         return o
     end,
@@ -85,7 +103,7 @@ local util = {
         local pos = 0
         for _, el in pairs(category:GetChildren()) do
             if el:IsA("UIPadding") then continue end
-            pos += (el.Size.Y.Offset + 5) * el.Size.X.Scale
+            pos += (el.Size.Y.Offset + loadedTheme["category"]["widgetSpacing"]) * el.Size.X.Scale
         end
         return pos
     end,
@@ -155,28 +173,28 @@ local util = {
             end
             table.remove(categories, largestIdx)
         end
-        local offY = 0
+        local offY = loadedTheme["tab"]["categorySpacing"] / 2
         if #fw > 0 then
             offY = fw[1].Position.Y.Offset + fw[1].Size.Y.Offset + 5
         end
         for i,category in pairs(fw) do
             if i == 1 then continue end
             category.Position = UDim2.new(0, 0, 0, fw[i-1].Position.Y.Offset + fw[i-1].Size.Y.Offset + 5)
-            offY += fw[i-1].Position.Y.Offset + fw[i-1].Size.Y.Offset + 5
+            offY += fw[i-1].Position.Y.Offset + fw[i-1].Size.Y.Offset + loadedTheme["tab"]["categorySpacing"] / 2
         end
         for i,category in pairs(row1) do
             if i == 1 then
                 category.Position = UDim2.new(0, 0, 0, offY)
                 continue
             end
-            category.Position = UDim2.new(0, 0, 0, row1[i-1].Position.Y.Offset + row1[i-1].Size.Y.Offset + 5 + offY)
+            category.Position = UDim2.new(0, 0, 0, row1[i-1].Position.Y.Offset + row1[i-1].Size.Y.Offset + loadedTheme["tab"]["categorySpacing"] + offY)
         end
         for i,category in pairs(row2) do
             if i == 1 then
-                category.Position = UDim2.new(0.5, 5, 0, offY)
+                category.Position = UDim2.new(0.5, loadedTheme["tab"]["categorySpacing"] / 2, 0, offY)
                 continue
             end
-            category.Position = UDim2.new(0.5, 5, 0, row2[i-1].Position.Y.Offset + row2[i-1].Size.Y.Offset + 5 + offY)
+            category.Position = UDim2.new(0.5, loadedTheme["tab"]["categorySpacing"] / 2, 0, row2[i-1].Position.Y.Offset + row2[i-1].Size.Y.Offset + loadedTheme["tab"]["categorySpacing"] + offY)
         end
     end
 }
@@ -191,6 +209,7 @@ util.addShadow = function(window, size)
     })
     window.Parent = shadow
     window.Position = UDim2.new(0, 0, 0, 0)
+    window.Size = UDim2.new(1, 0, 1, 0)
     window.ZIndex += 1
     for i = 0, 9 do
         util.roundify(util.create("Frame", {
@@ -231,16 +250,18 @@ carbon = {
             Position = UDim2.new(0,10,0,10),
             Parent = root,
             Name = "Carbon",
-            ZIndex = 1
+            ZIndex = 1,
+            BackgroundTransparency = loadedTheme.carbonBorderEnabled and 0 or 1
         })
-        util.roundify(border, 12)
-        util.addShadow(border, 15)
+        util.roundify(border, loadedTheme.cornerRadius)
+        util.addShadow(border, loadedTheme.shadowStrength)
         util.makeDraggable(border)
         local borderInner = util.create("Frame", {
             Size = UDim2.new(1, 0, 1, 0),
             BackgroundTransparency = 1,
             ClipsDescendants = true,
-            Parent = border
+            Parent = border,
+            Name = "inner"
         })
         local maximizer = util.create("TextButton", {
             Parent = borderInner,
@@ -270,9 +291,10 @@ carbon = {
             Size = UDim2.new(0, width, 0, height),
             Position = UDim2.new(0, 2, 0, 2),
             BackgroundColor3 = loadedTheme.background,
-            Parent = borderInner
+            Parent = borderInner,
+            Name = "main"
         })
-        util.roundify(main, 12)
+        util.roundify(main, loadedTheme.cornerRadius)
 
         local content = util.create("ScrollingFrame", {
             Size = UDim2.new(1,-120,1,-30),
@@ -296,7 +318,7 @@ carbon = {
             BackgroundColor3 = loadedTheme.topbar,
             Parent = main
         })
-        util.roundify(topbar, 12)
+        util.roundify(topbar, loadedTheme.cornerRadius)
         util.create("Frame", {
             Size = UDim2.new(0, width, 0, 15),
             Position = UDim2.new(0, 0, 0, 15),
@@ -305,7 +327,7 @@ carbon = {
             BorderSizePixel = 0,
             ZIndex = 2
         })
-        util.roundify(sidebar, 12)
+        util.roundify(sidebar, loadedTheme.cornerRadius)
         util.create("Frame", {
             Size = UDim2.new(0.5, 0, 0, height),
             Position = UDim2.new(0.5, 0, 0),
@@ -331,8 +353,8 @@ carbon = {
             Size = UDim2.new(0, width-(icon and 30 or 0), 0, 30),
             Position = UDim2.new(0, icon and 30 or 0, 0, 0),
             BackgroundTransparency = 1,
-            Font = Enum.Font.Ubuntu,
-            FontSize = Enum.FontSize.Size18,
+            Font = loadedTheme["font"],
+            FontSize = loadedTheme["fontSize"],
             TextColor3 = loadedTheme.foreground,
             TextXAlignment = Enum.TextXAlignment.Left,
             Text = "  " .. title,
@@ -348,7 +370,10 @@ carbon = {
             BackgroundColor3 = loadedTheme.closeBtnColor,
             Parent = topbar,
             ZIndex = 4,
-            Text = ""
+            Text = loadedTheme.closeBtnText,
+            Font = loadedTheme["font"],
+            FontSize = loadedTheme["fontSize"],
+            TextColor3 = loadedTheme.foreground,
         })
         util.roundify(close, 15)
         close.MouseButton1Down:Connect(function()
@@ -361,7 +386,10 @@ carbon = {
             BackgroundColor3 = loadedTheme.minimizeBtnColor,
             Parent = topbar,
             ZIndex = 4,
-            Text = ""
+            Text =  loadedTheme.minimizeBtnText,
+            Font = loadedTheme["font"],
+            FontSize = loadedTheme["fontSize"],
+            TextColor3 = loadedTheme.foreground,
         })
         util.roundify(minimize, 15)
         local minimized = false
@@ -370,12 +398,12 @@ carbon = {
             if not minimized then
                 minimized = true
                 maximizer.Visible = true
-                border:TweenSize(UDim2.new(0, 30, 0, 30), Enum.EasingDirection.InOut, Enum.EasingStyle.Sine, 0.25, true)
+                border.Parent:TweenSize(UDim2.new(0, 30, 0, 30), Enum.EasingDirection.InOut, Enum.EasingStyle.Sine, 0.25, true)
                 main.Visible = false
             else
                 minimized = false
                 maximizer.Visible = false
-                border:TweenSize(UDim2.new(0, width + 4, 0, height + 4), Enum.EasingDirection.InOut, Enum.EasingStyle.Sine, 0.25, true)
+                border.Parent:TweenSize(UDim2.new(0, width + 4, 0, height + 4), Enum.EasingDirection.InOut, Enum.EasingStyle.Sine, 0.25, true)
                 main.Visible = true
             end
         end
@@ -398,13 +426,13 @@ carbon = {
             ScrollBarThickness = 0,
             BorderSizePixel = 0
         })
-        util.roundify(tab, 12)
+        util.roundify(tab, loadedTheme.cornerRadius)
         util.create("UIPadding", {
             Parent = tab,
-            PaddingLeft = UDim.new(0, 5),
-            PaddingTop = UDim.new(0, 5),
-            PaddingBottom = UDim.new(0, 5),
-            PaddingRight = UDim.new(0, 5)
+            PaddingLeft = loadedTheme.tab.padding.left,
+            PaddingTop = loadedTheme.tab.padding.top,
+            PaddingBottom = loadedTheme.tab.padding.bottom,
+            PaddingRight = loadedTheme.tab.padding.right,
         })
         task.spawn(function()
             while true do
@@ -421,8 +449,8 @@ carbon = {
         local tabBtn = util.create("TextButton", {
             Size = UDim2.new(1,0,0,25),
             BackgroundColor3 = #win[2]:GetChildren() < 2 and loadedTheme.background or loadedTheme.topbar,
-            Font = Enum.Font.Ubuntu,
-            FontSize = Enum.FontSize.Size18,
+            Font = loadedTheme["font"],
+            FontSize = loadedTheme["fontSize"],
             Text = title,
             TextColor3 = loadedTheme.secondaryForeground,
             Parent = win[2],
@@ -451,52 +479,53 @@ carbon = {
             util.depend(util.checkTypes({title}, {"string"}), "Category title must be a string!")
         then return end
         local category = util.create("Frame", {
-            BackgroundColor3 = loadedTheme.topbar,
+            BackgroundColor3 = loadedTheme["category"]["useCustomColors"] and loadedTheme["category"]["bgColor"] or loadedTheme.topbar,
             Parent = tab,
             Name = "category",
-            Size = UDim2.new(0.5 + (fullWidth and 0.5 or 0), -5 + (fullWidth and 5 or 0), 0, 25)
+            Size = UDim2.new(0.5 + (fullWidth and 0.5 or 0), -5 + (fullWidth and 5 or 0), 0, (loadedTheme.category.titleVisible and 20 or 0) + (loadedTheme.category.separatorVisible and 1 or 0) + loadedTheme.category.padding.top.Offset)
         })
 
-        util.roundify(category, 12)
+        util.roundify(category, loadedTheme.cornerRadius)
 
-        util.create("TextLabel", {
+        if loadedTheme.category.titleVisible then
+            util.create("TextLabel", {
+                Parent = category,
+                Size = UDim2.new(1,0,0,20),
+                BackgroundTransparency = 1,
+                Font = loadedTheme["font"],
+                FontSize = loadedTheme["fontSize"],
+                Text = title,
+                TextColor3 = loadedTheme.secondaryForeground,
+            })
+        end
+        if loadedTheme.category.separatorVisible then
+            util.create("Frame", {
+                Parent = category,
+                Size = UDim2.new(1,0,0,1),
+                BorderSizePixel = 0,
+                BackgroundColor3 = loadedTheme.secondaryForeground,
+                Position = UDim2.new(0,0,0,20)
+            })
+        end
+        local categoryContent = util.create("Frame", {
             Parent = category,
-            Size = UDim2.new(1,0,0,20),
+            Size = UDim2.new(1,0,1,(loadedTheme.category.titleVisible and -20 or 0) - (loadedTheme.category.separatorVisible and 1 or 0)),
+            Position = UDim2.new(0,0,0,(loadedTheme.category.titleVisible and 20 or 0) + (loadedTheme.category.separatorVisible and 1 or 0)),
             BackgroundTransparency = 1,
-            Font = Enum.Font.Ubuntu,
-            FontSize = Enum.FontSize.Size18,
-            Text = title,
-            TextColor3 = loadedTheme.secondaryForeground,
-        })
-        util.create("Frame", {
-            Parent = category,
-            Size = UDim2.new(1,0,0,1),
-            BorderSizePixel = 0,
-            BackgroundColor3 = loadedTheme.secondaryForeground,
-            Position = UDim2.new(0,0,0,20)
-        })
-        local categoryContent = util.create("ScrollingFrame", {
-            Parent = category,
-            Size = UDim2.new(1,0,1,-21),
-            Position = UDim2.new(0,0,0,21),
-            BackgroundTransparency = 1,
-            BorderSizePixel = 0,
-            ScrollBarThickness = 0,
-            CanvasSize = UDim2.new(0, 0, 0, 0)
         })
         categoryContent.ChildAdded:Connect(function(child)
             if settings_autoFormatTabs then
                 if not child:IsA("GuiObject") then return end
-                category.Size += UDim2.new(0, 0, 0, child.AbsoluteSize.Y + 5)
+                category.Size += UDim2.new(0, 0, 0, child.AbsoluteSize.Y + loadedTheme["category"]["widgetSpacing"])
                 util.formatTab(tab)
             end
         end)
         util.create("UIPadding", {
             Parent = categoryContent,
-            PaddingLeft = UDim.new(0, 5),
-            PaddingTop = UDim.new(0, 5),
-            PaddingBottom = UDim.new(0, 5),
-            PaddingRight = UDim.new(0, 5)
+            PaddingLeft = loadedTheme.category.padding.left,
+            PaddingTop = loadedTheme.category.padding.top,
+            PaddingBottom = loadedTheme.category.padding.bottom,
+            PaddingRight = loadedTheme.category.padding.right,
         })
         if settings_autoFormatTabs then
             util.formatTab(tab) -- empty categories would fuck up fomatting
@@ -510,9 +539,9 @@ carbon = {
         then return end
         local btn = util.create("TextButton", {
             Parent = category,
-            BackgroundColor3 = loadedTheme.background,
-            Font = Enum.Font.Ubuntu,
-            FontSize = Enum.FontSize.Size18,
+            BackgroundColor3 = loadedTheme.widget.useCustomColors and loadedTheme.widget.primaryBg or loadedTheme.background,
+            Font = loadedTheme["font"],
+            FontSize = loadedTheme["fontSize"],
             Text = text,
             TextColor3 = loadedTheme.secondaryForeground,
             Size = UDim2.new(1, 0, 0, 25),
@@ -520,7 +549,7 @@ carbon = {
             ClipsDescendants = true,
             Position = UDim2.new(0,0,0,util.getPos(category))
         })
-        util.roundify(btn, 6)
+        util.roundify(btn, loadedTheme.widgetCornerRadius)
         btn.MouseButton1Down:Connect(function()
             callback()
             local circleEffect = util.create("Frame", {
@@ -552,17 +581,17 @@ carbon = {
         then return end
         local toggleBg = util.create("Frame", {
             Parent = category,
-            BackgroundColor3 = loadedTheme.background,
+            BackgroundColor3 = loadedTheme.widget.useCustomColors and loadedTheme.widget.primaryBg or loadedTheme.background,
             Size = UDim2.new(1, 0, 0, 25),
             Position = UDim2.new(0,0,0,util.getPos(category)),
         })
-        util.roundify(toggleBg, 6)
+        util.roundify(toggleBg, loadedTheme.widgetCornerRadius)
         local toggle = util.create("TextButton", {
             Text = "",
             Parent = toggleBg,
             Size = UDim2.new(0,21,0,21),
             Position = UDim2.new(0,2,0,2),
-            BackgroundColor3 = loadedTheme.topbar,
+            BackgroundColor3 = loadedTheme.widget.useCustomColors and loadedTheme.widget.secondaryBg or loadedTheme.topbar,
             AutoButtonColor = false
         })
         local toggleDisplay = toggle:Clone()
@@ -572,11 +601,11 @@ carbon = {
         toggleDisplay.Position = UDim2.new(0.5,0,0.5,0)
         toggleDisplay.Parent = toggle
         toggleDisplay.Visible = false
-        util.roundify(toggle, 6)
-        util.roundify(toggleDisplay, 6)
+        util.roundify(toggle, loadedTheme.widgetCornerRadius)
+        util.roundify(toggleDisplay, loadedTheme.widgetCornerRadius)
         local txt = util.create("TextLabel", {
-            Font = Enum.Font.Ubuntu,
-            FontSize = Enum.FontSize.Size18,
+            Font = loadedTheme["font"],
+            FontSize = loadedTheme["fontSize"],
             Text = "  " .. text,
             TextColor3 = loadedTheme.secondaryForeground,
             Parent = toggleBg,
@@ -611,29 +640,29 @@ carbon = {
         decimalPercision = math.clamp(decimalPercision, 0, math.huge)
         local slidereBg = util.create("Frame", {
             Parent = category,
-            BackgroundColor3 = loadedTheme.background,
+            BackgroundColor3 = loadedTheme.widget.useCustomColors and loadedTheme.widget.primaryBg or loadedTheme.background,
             Size = UDim2.new(1, 0, 0, 50),
             Position = UDim2.new(0,0,0,util.getPos(category)),
         })
-        util.roundify(slidereBg, 6)
+        util.roundify(slidereBg, loadedTheme.widgetCornerRadius)
         local barBg = util.create("TextButton", {
             Text = "",
             Parent = slidereBg,
             Size = UDim2.new(1,-20,0,7),
             Position = UDim2.new(0,10, 1,-19),
-            BackgroundColor3 = loadedTheme.topbar,
+            BackgroundColor3 = loadedTheme.widget.useCustomColors and loadedTheme.widget.secondaryBg or loadedTheme.topbar,
             AutoButtonColor = false
         })
         local bar = barBg:Clone()
-        bar.BackgroundColor3 = Color3.fromRGB(153, 0, 255)
+        bar.BackgroundColor3 = loadedTheme.secondaryAccent
         bar.Position = UDim2.new(0,0,0,0)
         bar.Parent = barBg
         bar.Size = UDim2.new((math.clamp(default, min, max) - min) / (max-min), 0, 1, 0)
-        util.roundify(barBg, 12)
-        util.roundify(bar, 12)
+        util.roundify(barBg, loadedTheme["widget"]["isSliderRound"] and 12 or 0)
+        util.roundify(bar, loadedTheme["widget"]["isSliderRound"] and 12 or 0)
         util.create("TextLabel", {
-            Font = Enum.Font.Ubuntu,
-            FontSize = Enum.FontSize.Size18,
+            Font = loadedTheme["font"],
+            FontSize = loadedTheme["fontSize"],
             Text = "  " .. text,
             TextColor3 = loadedTheme.secondaryForeground,
             Parent = slidereBg,
@@ -643,8 +672,8 @@ carbon = {
             TextXAlignment = Enum.TextXAlignment.Left
         })
         local display = util.create("TextLabel", {
-            Font = Enum.Font.Ubuntu,
-            FontSize = Enum.FontSize.Size18,
+            Font = loadedTheme["font"],
+            FontSize = loadedTheme["fontSize"],
             Text = tostring(math.clamp(default, min, max)) .. "  ",
             TextColor3 = loadedTheme.secondaryForeground,
             Parent = slidereBg,
@@ -686,14 +715,14 @@ carbon = {
         then return end
         local inputBg = util.create("Frame", {
             Parent = category,
-            BackgroundColor3 = loadedTheme.background,
+            BackgroundColor3 = loadedTheme.widget.useCustomColors and loadedTheme.widget.primaryBg or loadedTheme.background,
             Size = UDim2.new(1, 0, 0, 25),
             Position = UDim2.new(0,0,0,util.getPos(category)),
         })
-        util.roundify(inputBg, 6)
+        util.roundify(inputBg, loadedTheme.widgetCornerRadius)
         util.create("TextLabel", {
-            Font = Enum.Font.Ubuntu,
-            FontSize = Enum.FontSize.Size18,
+            Font = loadedTheme["font"],
+            FontSize = loadedTheme["fontSize"],
             Text = "  " .. text,
             TextColor3 = loadedTheme.secondaryForeground,
             Parent = inputBg,
@@ -704,17 +733,17 @@ carbon = {
         })
         local input = util.create("TextBox", {
             Text = "",
-            Font = Enum.Font.Ubuntu,
-            FontSize = Enum.FontSize.Size18,
+            Font = loadedTheme["font"],
+            FontSize = loadedTheme["fontSize"],
             ClearTextOnFocus = false,
             TextColor3 = loadedTheme.secondaryForeground,
             Parent = inputBg,
             Position = UDim2.new(0.5,-2,0,2),
             Size = UDim2.new(0.5,0,1,-4),
-            BackgroundColor3 = loadedTheme.topbar,
+            BackgroundColor3 = loadedTheme.widget.useCustomColors and loadedTheme.widget.secondaryBg or loadedTheme.topbar,
             TextXAlignment = Enum.TextXAlignment.Center
         })
-        util.roundify(input, 6)
+        util.roundify(input, loadedTheme.widgetCornerRadius)
         input.FocusLost:Connect(function()
             callback(input.Text)
         end)
@@ -727,14 +756,14 @@ carbon = {
         then return end
         local bg = util.create("Frame", {
             Parent = category,
-            BackgroundColor3 = loadedTheme.background,
+            BackgroundColor3 = loadedTheme.widget.useCustomColors and loadedTheme.widget.primaryBg or loadedTheme.background,
             Size = UDim2.new(1, 0, 0, 25),
             Position = UDim2.new(0,0,0,util.getPos(category)),
         })
-        util.roundify(bg, 6)
+        util.roundify(bg, loadedTheme.widgetCornerRadius)
         util.create("TextLabel", {
-            Font = Enum.Font.Ubuntu,
-            FontSize = Enum.FontSize.Size18,
+            Font = loadedTheme["font"],
+            FontSize = loadedTheme["fontSize"],
             Text = "  " .. text,
             TextColor3 = loadedTheme.secondaryForeground,
             Parent = bg,
@@ -745,8 +774,8 @@ carbon = {
         })
         local colorBtn = util.create("TextButton", {
             Text = "",
-            Font = Enum.Font.Ubuntu,
-            FontSize = Enum.FontSize.Size18,
+            Font = loadedTheme["font"],
+            FontSize = loadedTheme["fontSize"],
             TextColor3 = loadedTheme.secondaryForeground,
             Parent = bg,
             Position = UDim2.new(1,-23,0,2),
@@ -754,7 +783,7 @@ carbon = {
             BackgroundColor3 = Color3.fromRGB(255,0,0),
             TextXAlignment = Enum.TextXAlignment.Center
         })
-        util.roundify(colorBtn, 6)
+        util.roundify(colorBtn, loadedTheme.widgetCornerRadius)
         colorBtn.MouseButton1Down:Connect(function()
             if root:FindFirstChild("RGBSelection") then
                 root.RGBSelection:Destroy()
@@ -764,10 +793,11 @@ carbon = {
                 Position = UDim2.new(0,mouse.X,0,mouse.Y),
                 Parent = root,
                 Name = "RGBSelection",
-                ZIndex = 2
+                ZIndex = 2,
+                BackgroundTransparency = loadedTheme.carbonBorderEnabled and 0 or 1
             })
-            util.roundify(border, 12)
-            local shadow = util.addShadow(border, 15)
+            util.roundify(border, loadedTheme.cornerRadius)
+            local shadow = util.addShadow(border, loadedTheme.shadowStrength)
             shadow.Name = "RGBSelection"
 
             local gradient = util.create("UIGradient", {
@@ -790,9 +820,10 @@ carbon = {
                 Size = UDim2.new(1, -4, 1, -4),
                 Position = UDim2.new(0, 2, 0, 2),
                 BackgroundColor3 = loadedTheme.topbar,
-                ZIndex = 3
+                ZIndex = 3,
+                Name = "selection"
             })
-            util.roundify(selectionWindow, 12)
+            util.roundify(selectionWindow, loadedTheme.cornerRadius)
             local rgb = util.create("Frame", {
                 Parent = selectionWindow,
                 Size = UDim2.new(0, 200, 0, 200),
@@ -887,13 +918,13 @@ carbon = {
                 Position = UDim2.new(0, 250, 0, 125),
                 BackgroundColor3 = loadedTheme.background,
                 Text = "",
-                Font = Enum.Font.Ubuntu,
-                FontSize = Enum.FontSize.Size18,
+                Font = loadedTheme["font"],
+                FontSize = loadedTheme["fontSize"],
                 TextColor3 = loadedTheme.secondaryForeground,
                 PlaceholderText = "#FFFFFF"
             })
 
-            util.roundify(inputHex, 6)
+            util.roundify(inputHex, loadedTheme.widgetCornerRadius)
 
             local r = util.create("TextBox", {
                 Parent = selectionWindow,
@@ -901,13 +932,13 @@ carbon = {
                 Position = UDim2.new(0, 250, 0, 155),
                 BackgroundColor3 = loadedTheme.background,
                 Text = "",
-                Font = Enum.Font.Ubuntu,
+                Font = loadedTheme["font"],
                 FontSize = Enum.FontSize.Size14,
                 TextColor3 = loadedTheme.secondaryForeground,
                 PlaceholderText = "r"
             })
 
-            util.roundify(r, 6)
+            util.roundify(r, loadedTheme.widgetCornerRadius)
 
             local g = r:Clone()
             g.Parent = selectionWindow
@@ -969,8 +1000,8 @@ carbon = {
                 Size = UDim2.new(0, 97, 0, 21),
                 Position = UDim2.new(0, 10, 1, -24),
                 Text = "Confirm",
-                Font = Enum.Font.Ubuntu,
-                FontSize = Enum.FontSize.Size18,
+                Font = loadedTheme["font"],
+                FontSize = loadedTheme["fontSize"],
                 TextColor3 = loadedTheme.secondaryForeground,
                 BackgroundColor3 = loadedTheme.background
             })
@@ -980,14 +1011,14 @@ carbon = {
                 Size = UDim2.new(0, 97, 0, 21),
                 Position = UDim2.new(0, 113, 1, -24),
                 Text = "Cancel",
-                Font = Enum.Font.Ubuntu,
-                FontSize = Enum.FontSize.Size18,
+                Font = loadedTheme["font"],
+                FontSize = loadedTheme["fontSize"],
                 TextColor3 = loadedTheme.secondaryForeground,
                 BackgroundColor3 = loadedTheme.background
             })
 
-            util.roundify(btnConfirm, 6)
-            util.roundify(btnCancel, 6)
+            util.roundify(btnConfirm, loadedTheme.widgetCornerRadius)
+            util.roundify(btnCancel, loadedTheme.widgetCornerRadius)
 
             btnCancel.MouseButton1Down:Connect(function()
                 shadow:Destroy()
@@ -1093,14 +1124,14 @@ carbon = {
         then return end
         return util.roundify(util.create("TextLabel", {
             Parent = category,
-            BackgroundColor3 = loadedTheme.background,
-            Font = Enum.Font.Ubuntu,
-            FontSize = Enum.FontSize.Size18,
+            BackgroundColor3 = loadedTheme.widget.useCustomColors and loadedTheme.widget.primaryBg or loadedTheme.background,
+            Font = loadedTheme["font"],
+            FontSize = loadedTheme["fontSize"],
             Text = text,
             TextColor3 = loadedTheme.secondaryForeground,
             Size = UDim2.new(1, 0, 0, 25),
             Position = UDim2.new(0,0,0,util.getPos(category))
-        }), 6)
+        }), loadedTheme.widgetCornerRadius)
     end,
     addDropdown = function(category, text, values, default, callback)
         if not
@@ -1109,14 +1140,14 @@ carbon = {
         then return end
         local dropdownBg = util.create("Frame", {
             Parent = category,
-            BackgroundColor3 = loadedTheme.background,
+            BackgroundColor3 = loadedTheme.widget.useCustomColors and loadedTheme.widget.primaryBg or loadedTheme.background,
             Size = UDim2.new(1, 0, 0, 25),
             Position = UDim2.new(0,0,0,util.getPos(category)),
         })
-        util.roundify(dropdownBg, 6)
+        util.roundify(dropdownBg, loadedTheme.widgetCornerRadius)
         util.create("TextLabel", {
-            Font = Enum.Font.Ubuntu,
-            FontSize = Enum.FontSize.Size18,
+            Font = loadedTheme["font"],
+            FontSize = loadedTheme["fontSize"],
             Text = "  " .. text,
             TextColor3 = loadedTheme.secondaryForeground,
             Parent = dropdownBg,
@@ -1127,20 +1158,20 @@ carbon = {
         })
         local selectBtn = util.create("TextButton", {
             Text = default, -- Doesn't have to be in the list of values in case it's "none" or something
-            Font = Enum.Font.Ubuntu,
-            FontSize = Enum.FontSize.Size18,
+            Font = loadedTheme["font"],
+            FontSize = loadedTheme["fontSize"],
             TextColor3 = loadedTheme.secondaryForeground,
             Parent = dropdownBg,
             Position = UDim2.new(0.5,-2,0,2),
             Size = UDim2.new(0.5,0,1,-4),
-            BackgroundColor3 = loadedTheme.topbar,
+            BackgroundColor3 = loadedTheme.widget.useCustomColors and loadedTheme.widget.secondaryBg or loadedTheme.topbar,
             TextXAlignment = Enum.TextXAlignment.Center
         })
-        util.roundify(selectBtn, 6)
+        util.roundify(selectBtn, loadedTheme.widgetCornerRadius)
         local indicator = util.create("TextLabel", {
             Text = "+",
-            Font = Enum.Font.Ubuntu,
-            FontSize = Enum.FontSize.Size18,
+            Font = loadedTheme["font"],
+            FontSize = loadedTheme["fontSize"],
             TextColor3 = loadedTheme.secondaryForeground,
             Size = UDim2.new(0, 21, 0, 21),
             Position = UDim2.new(1,-21,0,0),
@@ -1159,21 +1190,21 @@ carbon = {
                 Parent = root,
                 Size = UDim2.new(0, selectBtn.AbsoluteSize.X, 0, 0),
                 Position = UDim2.new(0, selectBtn.AbsolutePosition.X, 0, selectBtn.AbsolutePosition.Y + selectBtn.AbsoluteSize.Y),
-                BackgroundColor3 = loadedTheme.topbar,
+                BackgroundColor3 = loadedTheme.widget.useCustomColors and loadedTheme.widget.secondaryBg or loadedTheme.topbar,
                 Name = text .. "Sel",
                 ClipsDescendants = true
             })
             util.create("UIListLayout", {
                 Parent = selection
             })
-            util.roundify(selection, 6)
+            util.roundify(selection, loadedTheme.widgetCornerRadius)
             for i,v in pairs(values) do
                 util.create("TextButton", {
                     Parent = selection,
                     Size = UDim2.new(1,0,0,20),
                     Text = tostring(v),
-                    Font = Enum.Font.Ubuntu,
-                    FontSize = Enum.FontSize.Size18,
+                    Font = loadedTheme["font"],
+                    FontSize = loadedTheme["fontSize"],
                     TextColor3 = loadedTheme.secondaryForeground,
                     BackgroundTransparency = 1
                 }).MouseButton1Down:Connect(function()
@@ -1195,14 +1226,14 @@ carbon = {
         then return end
         local kbBg = util.create("Frame", {
             Parent = category,
-            BackgroundColor3 = loadedTheme.background,
+            BackgroundColor3 = loadedTheme.widget.useCustomColors and loadedTheme.widget.primaryBg or loadedTheme.background,
             Size = UDim2.new(1, 0, 0, 25),
             Position = UDim2.new(0,0,0,util.getPos(category)),
         })
-        util.roundify(kbBg, 6)
+        util.roundify(kbBg, loadedTheme.widgetCornerRadius)
         util.create("TextLabel", {
-            Font = Enum.Font.Ubuntu,
-            FontSize = Enum.FontSize.Size18,
+            Font = loadedTheme["font"],
+            FontSize = loadedTheme["fontSize"],
             Text = "  " .. text,
             TextColor3 = loadedTheme.secondaryForeground,
             Parent = kbBg,
@@ -1213,16 +1244,16 @@ carbon = {
         })
         local key = util.create("TextButton", {
             Text = "[ Keybind ]",
-            Font = Enum.Font.Ubuntu,
-            FontSize = Enum.FontSize.Size18,
+            Font = loadedTheme["font"],
+            FontSize = loadedTheme["fontSize"],
             TextColor3 = loadedTheme.secondaryForeground,
             Parent = kbBg,
             Position = UDim2.new(0.5,-2,0,2),
             Size = UDim2.new(0.5,0,1,-4),
-            BackgroundColor3 = loadedTheme.topbar,
+            BackgroundColor3 = loadedTheme.widget.useCustomColors and loadedTheme.widget.secondaryBg or loadedTheme.topbar,
             TextXAlignment = Enum.TextXAlignment.Center
         })
-        util.roundify(key, 6)
+        util.roundify(key, loadedTheme.widgetCornerRadius)
         key.MouseButton1Down:Connect(function()
             if settingKeybind then return end
             settingKeybind = true
@@ -1261,10 +1292,11 @@ carbon = {
             Position = UDim2.new(0.5,-width/2,0.5,-height/2),
             Parent = root,
             Name = "CarbonInfo",
-            ZIndex = 2
+            ZIndex = 2,
+            BackgroundTransparency = loadedTheme.carbonBorderEnabled and 0 or 1
         })
-        util.roundify(border, 12)
-        local shadow = util.addShadow(border, 15)
+        util.roundify(border, loadedTheme.cornerRadius)
+        local shadow = util.addShadow(border, loadedTheme.shadowStrength)
 
         local gradient = util.create("UIGradient", {
             Color = ColorSequence.new({
@@ -1288,7 +1320,7 @@ carbon = {
             BackgroundColor3 = loadedTheme.background,
             ZIndex = 3
         })
-        util.roundify(main, 12)
+        util.roundify(main, loadedTheme.cornerRadius)
 
         local topbar = util.create("Frame", {
             Size = UDim2.new(1, 0, 0, 30),
@@ -1296,7 +1328,7 @@ carbon = {
             BackgroundColor3 = loadedTheme.topbar,
             Parent = main
         })
-        util.roundify(topbar, 12)
+        util.roundify(topbar, loadedTheme.cornerRadius)
         util.create("Frame", {
             Size = UDim2.new(1, 0, 0, 15),
             Position = UDim2.new(0, 0, 0, 15),
@@ -1309,8 +1341,8 @@ carbon = {
             Size = UDim2.new(1, 0, 0, 30),
             Position = UDim2.new(0, 0, 0, 0),
             BackgroundTransparency = 1,
-            Font = Enum.Font.Ubuntu,
-            FontSize = Enum.FontSize.Size18,
+            Font = loadedTheme["font"],
+            FontSize = loadedTheme["fontSize"],
             TextColor3 = loadedTheme.foreground,
             TextXAlignment = Enum.TextXAlignment.Left,
             Text = "  " .. title,
@@ -1324,8 +1356,8 @@ carbon = {
             Position = UDim2.new(0, 0, 0, 30),
             Text = text,
             BackgroundTransparency = 1,
-            Font = Enum.Font.Ubuntu,
-            FontSize = Enum.FontSize.Size18,
+            Font = loadedTheme["font"],
+            FontSize = loadedTheme["fontSize"],
             TextColor3 = loadedTheme.foreground,
             TextWrapped = true
         })
@@ -1347,8 +1379,8 @@ carbon = {
             local nbtn = util.create("TextButton", {
                 Parent = main,
                 BackgroundColor3 = loadedTheme.topbar,
-                Font = Enum.Font.Ubuntu,
-                FontSize = Enum.FontSize.Size18,
+                Font = loadedTheme["font"],
+                FontSize = loadedTheme["fontSize"],
                 Text = btn,
                 TextColor3 = loadedTheme.secondaryForeground,
                 Size = UDim2.new(1 / #buttons, -10 - 5*(i-1), 0, 25),
@@ -1357,7 +1389,7 @@ carbon = {
                 Position = UDim2.new((1 / #buttons) * (i-1), 5 + 5*(i-1),1, -30)
             })
             print(nbtn.Position)
-            util.roundify(nbtn, 6)
+            util.roundify(nbtn, loadedTheme.widgetCornerRadius)
             nbtn.MouseButton1Down:Connect(function()
                 callback(btn)
                 local circleEffect = util.create("Frame", {
@@ -1395,10 +1427,11 @@ carbon = {
             Position = UDim2.new(1, 0, 1, -100),
             Parent = root,
             Name = "Notif",
-            ZIndex = 2
+            ZIndex = 2,
+            BackgroundTransparency = loadedTheme.carbonBorderEnabled and 0 or 1
         })
-        util.roundify(border, 12)
-        local shadow = util.addShadow(border, 15)
+        util.roundify(border, loadedTheme.cornerRadius)
+        local shadow = util.addShadow(border, loadedTheme.shadowStrength)
 
         local colors = {
             ERR = ColorSequence.new({
@@ -1441,14 +1474,14 @@ carbon = {
             Size = UDim2.new(1, -4, 1, -4),
             Position = UDim2.new(0, 2, 0, 2)
         })
-        util.roundify(hover, 12)
+        util.roundify(hover, loadedTheme.cornerRadius)
 
         util.create("TextLabel", {
             Parent = hover,
             Size = UDim2.new(1, 0, 0, 20),
             Position = UDim2.new(0, 0, 0, 0),
-            Font = Enum.Font.Ubuntu,
-            FontSize = Enum.FontSize.Size18,
+            Font = loadedTheme["font"],
+            FontSize = loadedTheme["fontSize"],
             TextColor3 = loadedTheme.secondaryForeground,
             Text = "  " .. title,
             BackgroundTransparency = 1,
@@ -1459,8 +1492,8 @@ carbon = {
             Parent = hover,
             Size = UDim2.new(1, -2, 1, -22),
             Position = UDim2.new(0, 1, 0, 21),
-            Font = Enum.Font.Ubuntu,
-            FontSize = Enum.FontSize.Size18,
+            Font = loadedTheme["font"],
+            FontSize = loadedTheme["fontSize"],
             TextColor3 = loadedTheme.secondaryForeground,
             Text = "  " .. msg,
             BackgroundTransparency = 1,
@@ -1474,8 +1507,48 @@ carbon = {
             shadow:Destroy()
         end)
     end,
+    addSeparator = function(category)
+        return util.create("Frame", {
+            Parent = category,
+            BackgroundColor3 = loadedTheme.secondaryForeground,
+            Size = UDim2.new(1, -10, 0, 1),
+            Position = UDim2.new(0, 5, 0, util.getPos(category)),
+            BorderSizePixel = 0
+        })
+    end,
+    addNamedSeparator = function(category, name)
+        local bg = util.create("Frame", {
+            Parent = category,
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 0, 20),
+            Position = UDim2.new(0, 5, 0, util.getPos(category))
+        })
+        local a = util.create("Frame", {
+            Parent = bg,
+            BackgroundColor3 = loadedTheme.secondaryForeground,
+            Size = UDim2.new(1, -10, 0, 1),
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            Position = UDim2.new(0.5, -5, 0.5, 0),
+            BorderSizePixel = 0
+        })
+        local bounds = game:GetService("TextService"):GetTextSize(name, 14, loadedTheme["font"], Vector2.new(math.huge, math.huge))
+        local b = util.create("TextLabel", {
+            Text = name,
+            Size = UDim2.new(0, bounds.X + 4, 0, 14),
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            TextColor3 = loadedTheme.secondaryForeground,
+            Font = loadedTheme["font"],
+            FontSize = Enum.FontSize.Size14,
+            Parent = bg,
+            BackgroundColor3 = loadedTheme["category"]["useCustomColors"] and loadedTheme["category"]["bgColor"] or loadedTheme.topbar,
+            Position = UDim2.new(0.5, 0, 0.5, 0),
+            BorderSizePixel = 0
+        })
+        return bg
+    end,
     util = util,
-    loadTheme = loadTheme -- Might move into util, though it's not as clean (util is mostly reserved for developer shit)
+    loadTheme = loadTheme, -- Might move into util, though it's not as clean (util is mostly reserved for developer shit)
+    loadThemeFromFile = loadThemeFromFile
 }
 
 if gethui and gethui():FindFirstChild(root.Name) then
