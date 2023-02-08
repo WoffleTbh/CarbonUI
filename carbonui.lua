@@ -254,7 +254,7 @@ carbon = {
             BackgroundTransparency = loadedTheme.carbonBorderEnabled and 0 or 1
         })
         util.roundify(border, loadedTheme.cornerRadius)
-        util.addShadow(border, loadedTheme.shadowStrength)
+        local shadow = util.addShadow(border, loadedTheme.shadowStrength)
         util.makeDraggable(border)
         local borderInner = util.create("Frame", {
             Size = UDim2.new(1, 0, 1, 0),
@@ -398,12 +398,12 @@ carbon = {
             if not minimized then
                 minimized = true
                 maximizer.Visible = true
-                border.Parent:TweenSize(UDim2.new(0, 30, 0, 30), Enum.EasingDirection.InOut, Enum.EasingStyle.Sine, 0.25, true)
+                shadow:TweenSize(UDim2.new(0, 30, 0, 30), Enum.EasingDirection.InOut, Enum.EasingStyle.Sine, 0.25, true)
                 main.Visible = false
             else
                 minimized = false
                 maximizer.Visible = false
-                border.Parent:TweenSize(UDim2.new(0, width + 4, 0, height + 4), Enum.EasingDirection.InOut, Enum.EasingStyle.Sine, 0.25, true)
+                shadow:TweenSize(UDim2.new(0, width + 4, 0, height + 4), Enum.EasingDirection.InOut, Enum.EasingStyle.Sine, 0.25, true)
                 main.Visible = true
             end
         end
