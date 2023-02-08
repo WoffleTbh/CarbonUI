@@ -225,6 +225,7 @@ end
 local bindingFunc = function(k) end
 local handlers = {}
 local settingKeybind = false
+local keysPressed = {}
 
 userInputService.InputBegan:Connect(function(key, gameProcessed)
     if gameProcessed then return end
@@ -232,10 +233,28 @@ userInputService.InputBegan:Connect(function(key, gameProcessed)
         if settingKeybind then
             bindingFunc(key.KeyCode)
         else
+            keysPressed[key.KeyCode] = true
             if handlers[key.KeyCode] then
-                handlers[key.KeyCode]()
+                handlers[key.KeyCode][1]()
             end
         end
+    end
+end)
+userInputService.InputEnded:Connect(function(key, gameProcessed)
+    if gameProcessed then return end
+    if key.UserInputType == Enum.UserInputType.Keyboard then
+        keysPressed[key.KeyCode] = false
+    end
+end)
+
+task.spawn(function()
+    while true do
+        for _,k in pairs(keysPressed) do
+            if handlers[k] and handlers[k][2] then
+                handlers[k][1]()
+            end
+        end
+        task.wait()
     end
 end)
 
@@ -1216,10 +1235,10 @@ carbon = {
         end)
         return dropdownBg
     end,
-    addKeybind = function(category, text, callback)
+    addKeybind = function(category, text, allowHold, callback)
         if not
             util.depend(util.isCategory(category), "Can't add a keybind to non-category") or not
-            util.depend(util.checkTypes({text, callback}, {"string", "function"}), "Invalid types passed to carbon.addKeybinds")
+            util.depend(util.checkTypes({text, callback}, {"string", "bool", "function"}), "Invalid types passed to carbon.addKeybinds")
         then return end
         local kbBg = util.create("Frame", {
             Parent = category,
@@ -1258,7 +1277,7 @@ carbon = {
             bindingFunc = function(k)
                 settingKeybind = false
                 key.Text = "[ " .. tostring(k.Name) .. " ]"
-                handlers[k] = callback
+                handlers[k] = {callback, allowHold}
                 bindingFunc = function(k) end
             end
         end)
