@@ -8,14 +8,14 @@ To import CarbonUI, you can use the code below:
 ```lua
 getgenv().user = "WoffleTbh"
 getgenv().repo = "CarbonUI"
-local carbon = loadstring(game:HttpGet("https://raw.githubusercontent.com/WoffleTbh/CarbonUI/main/carbonui.lua"))()
+local carbon = loadstring(game:HttpGet("https://raw.githubusercontent.com/" ..getgenv().user.. "/" ..getgenv().repo.. "/main/carbonui.lua"))()
 ```
 To load themes, you can import carbon like so:
 ```lua
 getgenv().user = "WoffleTbh"
 getgenv().repo = "CarbonUI"
 getgenv().theme = "tokyonight-storm" -- Default theme
-local carbon = loadstring(game:HttpGet("https://raw.githubusercontent.com/WoffleTbh/CarbonUI/main/carbonui.lua"))()
+local carbon = loadstring(game:HttpGet("https://raw.githubusercontent.com/" ..getgenv().user.. "/" ..getgenv().repo.. "/main/carbonui.lua"))()
 ```
 More theme docs are in the `themes` folder.
 ### Examples
