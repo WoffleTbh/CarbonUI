@@ -173,14 +173,11 @@ local util = {
             end
             table.remove(categories, largestIdx)
         end
-        local offY = loadedTheme["tab"]["categorySpacing"] / 2
-        if #fw > 0 then
-            offY = fw[1].Position.Y.Offset + fw[1].Size.Y.Offset + 5
-        end
+        local offY = loadedTheme["tab"]["categorySpacing"]
         for i,category in pairs(fw) do
             if i == 1 then continue end
             category.Position = UDim2.new(0, 0, 0, fw[i-1].Position.Y.Offset + fw[i-1].Size.Y.Offset + 5)
-            offY += fw[i-1].Position.Y.Offset + fw[i-1].Size.Y.Offset + loadedTheme["tab"]["categorySpacing"] / 2
+            offY += fw[i].Position.Y.Offset + fw[i].Size.Y.Offset + loadedTheme["tab"]["categorySpacing"]
         end
         for i,category in pairs(row1) do
             if i == 1 then
@@ -191,10 +188,10 @@ local util = {
         end
         for i,category in pairs(row2) do
             if i == 1 then
-                category.Position = UDim2.new(0.5, loadedTheme["tab"]["categorySpacing"] / 2, 0, offY)
+                category.Position = UDim2.new(0.5, loadedTheme["tab"]["categorySpacing"], 0, offY)
                 continue
             end
-            category.Position = UDim2.new(0.5, loadedTheme["tab"]["categorySpacing"] / 2, 0, row2[i-1].Position.Y.Offset + row2[i-1].Size.Y.Offset + loadedTheme["tab"]["categorySpacing"] + offY)
+            category.Position = UDim2.new(0.5, loadedTheme["tab"]["categorySpacing"], 0, row2[i-1].Position.Y.Offset + row2[i-1].Size.Y.Offset + loadedTheme["tab"]["categorySpacing"] + offY)
         end
     end
 }
