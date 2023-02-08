@@ -1,6 +1,6 @@
 return {
     background = Color3.fromRGB(35, 40, 61),
-    topbar = Color3.fromRGB(30, 35, 54),
+    topbar = Color3.fromRGB(27, 30, 47),
     accent = Color3.fromRGB(255, 0, 212),
     secondaryAccent = Color3.fromRGB(153, 0, 255),
     foreground = Color3.fromRGB(161, 168, 204),
