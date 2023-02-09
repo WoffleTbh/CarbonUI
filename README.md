@@ -30,7 +30,7 @@ function createTestCategory(tab)
     carbon.addLabel(category, "Label")
     carbon.addSlider(category, "Slider", 0, 100, 50, 1, function()end)
     carbon.addToggle(category, "Toggle", function()end)
-    carbon.addKeybind(category, "Keybind", function()end)
+    carbon.addKeybind(category, "Keybind", false, function()end)
     carbon.addRGBColorPicker(category, "Color Picker", function()end)
 end
 
