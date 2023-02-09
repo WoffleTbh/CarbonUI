@@ -1238,7 +1238,7 @@ carbon = {
     addKeybind = function(category, text, allowHold, callback)
         if not
             util.depend(util.isCategory(category), "Can't add a keybind to non-category") or not
-            util.depend(util.checkTypes({text, callback}, {"string", "boolean", "function"}), "Invalid types passed to carbon.addKeybinds")
+            util.depend(util.checkTypes({text, allowHold, callback}, {"string", "boolean", "function"}), "Invalid types passed to carbon.addKeybinds")
         then return end
         local kbBg = util.create("Frame", {
             Parent = category,
