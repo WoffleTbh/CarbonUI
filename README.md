@@ -2,7 +2,8 @@
 This is the official repository for the CarbonUI library.
 
 # Preview
-![Preview](https://github.com/WoffleTbh/CarbonUI/blob/main/githubAssets/preview1.png?raw=true)
+![Preview](https://github.com/WoffleTbh/CarbonUI/blob/main/githubAssets/preview1.png?raw=true)  
+(The preview above uses the tokyonight theme, which is a darker version of the default theme)
 # Usage
 To import CarbonUI, you can use the code below:
 ```lua
