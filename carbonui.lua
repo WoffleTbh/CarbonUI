@@ -3,7 +3,7 @@
     by woffle#0001
 ]]--
 
-local getgenv = getgenv or _G -- idk I guess some shitty exploits might not support getgenv
+local getgenv = getgenv or function() return _G end -- idk I guess some shitty exploits might not support getgenv
 
 -- SETTINGS
 
@@ -38,7 +38,7 @@ local util = {
             o[i] = v
         end
         if properties["Parent"] then
-            o.Parent = properties["Parent"]
+            o.Parent = type(properties["Parent"]) == "table" and properties["Parent"][1] or properties["Parent"]
         end
         if properties["BorderSizePixel"] then return o end -- Prevent fancy stuff from happening on explicitly no-border stuff
         if o:IsA("GuiObject") then
@@ -100,6 +100,7 @@ local util = {
     end,
 
     getPos = function(category)
+        category = category[1]
         local pos = 0
         for _, el in pairs(category:GetChildren()) do
             if el:IsA("UIPadding") then continue end
@@ -109,6 +110,7 @@ local util = {
     end,
 
     isCategory = function(category)
+        category = category[1]
         return category.Parent.Name == "category"
     end,
 
@@ -142,36 +144,23 @@ local util = {
                 table.insert(categories, category)
             end
         end
+        local function getTotalSize(r, e)
+            local s = 0
+            for _,v in pairs(r) do
+                s += v.Size.Y.Offset
+            end
+            return s + e.Size.Y.Offset
+        end
         local row1 = {}
         local row2 = {}
         local fw = {}
-        local cr = 1
         while #categories > 0 do
-            local largest
-            local largestIdx
-            local largestSize = 0
-            local ifw
-            for i,v in pairs(categories) do
-                if v.Size.Y.Offset > largestSize then
-                    largest = v
-                    largestIdx = i
-                    largestSize = v.Size.Y.Offset
-                end
-                if v.Size.X.Scale == 1 then
-                    table.insert(fw, v)
-                    table.remove(categories, i)
-                    ifw = true
-                end
-            end
-            if ifw then continue end
-            if cr == 1 then
-                row1[#row1+1] = largest
-                cr = 2
+            if getTotalSize(row1, categories[1]) > getTotalSize(row2, categories[1]) then
+                table.insert(row2, categories[1])
             else
-                row2[#row2+1] = largest
-                cr = 1
+                table.insert(row1, categories[1])
             end
-            table.remove(categories, largestIdx)
+            table.remove(categories, 1)
         end
         local offY = loadedTheme["tab"]["categorySpacing"]
         for i,category in pairs(fw) do
@@ -195,6 +184,43 @@ local util = {
         end
     end
 }
+util.disable = function(widget)
+    widget = widget[1]
+    if widget:FindFirstChild("disabled") then return end
+    local overlay = util.create("Frame", {
+        Parent = widget,
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundColor3 = Color3.new(0, 0, 0),
+        BorderSizePixel = 0,
+        BackgroundTransparency = 1,
+        Name = "disabled"
+    })
+    util.roundify(overlay, loadedTheme.widgetCornerRadius)
+    for i = 20,10,-1 do
+        overlay.BackgroundTransparency = i / 20
+        task.wait()
+    end
+end
+util.enable = function(widget)
+    widget = widget[1]
+    if not widget:FindFirstChild("disabled") then return end
+    for i = 10,20 do
+        widget:FindFirstChild("disabled").BackgroundTransparency = i / 20
+        task.wait()
+    end
+    widget:FindFirstChild("disabled"):Destroy()
+end
+util.condition = function(w, check)
+    task.spawn(function()
+        while task.wait() do
+            if not check() then
+                util.disable(w)
+            else
+                util.enable(w)
+            end
+        end
+    end)
+end
 util.addShadow = function(window, size)
     size = size / 10
     local shadow = util.create("Frame", {
@@ -473,7 +499,7 @@ carbon = {
             BorderSizePixel = 0,
         })
 
-        tabBtn.MouseButton1Down:Connect(function()
+        local function _select()
             if tabBtn.BackgroundColor3 == loadedTheme.background then return end
             for _,v in pairs(win[3]:GetChildren()) do
                 if v == tab then continue end
@@ -486,10 +512,16 @@ carbon = {
                 v.BackgroundColor3 = loadedTheme.topbar
             end
             tabBtn.BackgroundColor3 = loadedTheme.background
-        end)
-        return tab
+        end
+
+        tabBtn.MouseButton1Down:Connect(_select)
+        return {
+            tab,
+            select = _select
+        }
     end,
     addCategory = function(tab, title, fullWidth)
+        tab = tab[1]
         if not
             util.depend(tab.Name == "Tab", "Can't add a category to a non-tab.") or not
             util.depend(util.checkTypes({title}, {"string"}), "Category title must be a string!")
@@ -503,8 +535,9 @@ carbon = {
 
         util.roundify(category, loadedTheme.cornerRadius)
 
+        local _title
         if loadedTheme.category.titleVisible then
-            util.create("TextLabel", {
+            _title = util.create("TextLabel", {
                 Parent = category,
                 Size = UDim2.new(1,0,0,20),
                 BackgroundTransparency = 1,
@@ -530,9 +563,9 @@ carbon = {
             BackgroundTransparency = 1,
         })
         categoryContent.ChildAdded:Connect(function(child)
+            if not child:IsA("GuiObject") then return end
+            category.Size += UDim2.new(0, 0, 0, child.AbsoluteSize.Y + loadedTheme["category"]["widgetSpacing"])
             if settings_autoFormatTabs then
-                if not child:IsA("GuiObject") then return end
-                category.Size += UDim2.new(0, 0, 0, child.AbsoluteSize.Y + loadedTheme["category"]["widgetSpacing"])
                 util.formatTab(tab)
             end
         end)
@@ -546,7 +579,14 @@ carbon = {
         if settings_autoFormatTabs then
             util.formatTab(tab) -- empty categories would fuck up fomatting
         end
-        return categoryContent
+        return {
+            categoryContent,
+            changeTitle = function(new)
+                if _title then
+                    _title.Text = new
+                end
+            end
+        }
     end,
     addButton = function(category, text, callback)
         if not
@@ -566,13 +606,14 @@ carbon = {
             Position = UDim2.new(0,0,0,util.getPos(category))
         })
         util.roundify(btn, loadedTheme.widgetCornerRadius)
-        btn.MouseButton1Down:Connect(function()
+        local function click(x,y)
+            if btn:FindFirstChild("disabled") then return end
             callback()
             local circleEffect = util.create("Frame", {
                 Parent = btn,
                 BackgroundColor3 = Color3.new(1,1,1),
                 Size = UDim2.new(0,1,0,1),
-                Position = UDim2.new(0, mouse.X - btn.AbsolutePosition.X, 0, mouse.Y - btn.AbsolutePosition.Y),
+                Position = UDim2.new(0, x, 0, y),
                 AnchorPoint = Vector2.new(0.5,0.5)
             })
             util.create("UICorner", {
@@ -587,8 +628,25 @@ carbon = {
                 end
                 circleEffect:Destroy()
             end)
+        end
+        btn.MouseButton1Down:Connect(function()
+            click(mouse.X - btn.AbsolutePosition.X, mouse.Y - btn.AbsolutePosition.Y)
         end)
-        return btn
+        return {
+            btn,
+            click = function()
+                click(btn.Position.X.Offset + btn.Size.X.Offset / 2 - btn.AbsolutePosition.X, btn.Position.Y.Offset + btn.Size.Y.Offset / 2 - btn.AbsolutePosition.Y)
+            end,
+            setText = function(txt)
+                btn.Text = txt
+            end,
+            disable = function()
+                util.disable(btn)
+            end,
+            enable = function()
+                util.enable(btn)
+            end
+        }
     end,
     addToggle = function(category, text, callback)
         if not
@@ -611,7 +669,7 @@ carbon = {
             AutoButtonColor = false
         })
         local toggleDisplay = toggle:Clone()
-        toggleDisplay.BackgroundColor3 = Color3.fromRGB(153, 0, 255)
+        toggleDisplay.BackgroundColor3 = loadedTheme.secondaryAccent
         toggleDisplay.Size = UDim2.new(0,0,0,0)
         toggleDisplay.AnchorPoint = Vector2.new(0.5,0.5)
         toggleDisplay.Position = UDim2.new(0.5,0,0.5,0)
@@ -632,6 +690,7 @@ carbon = {
         })
         local toggeled = false
         local function _toggle()
+            if toggleBg:FindFirstChild("disabled") then return end
             if not toggeled then
                 toggleDisplay.Visible = true
                 toggleDisplay:TweenSize(UDim2.new(1,0,1,0), Enum.EasingDirection.Out, Enum.EasingStyle.Quint, 0.2, true)
@@ -646,24 +705,36 @@ carbon = {
         end
         toggle.MouseButton1Down:Connect(_toggle)
         toggleDisplay.MouseButton1Down:Connect(_toggle)
-        return toggleBg
+        return {
+            toggleBg,
+            toggle = _toggle,
+            setLabeltext = function(_txt)
+                txt.Text = _txt
+            end,
+            disable = function()
+                util.disable(toggleBg)
+            end,
+            enable = function()
+                util.enable(toggleBg)
+            end
+        }
     end,
     addSlider = function(category, text, min, max, default, decimalPercision, callback)
         if not
             util.depend(util.isCategory(category), "Can't add a slider to non-category") or not
             util.depend(util.checkTypes({text, min, max, default, decimalPercision, callback}, {"string", "number", "number", "number", "number", "function"}), "Invalid types passed to carbon.addSlider")
         then return end
-        decimalPercision = math.clamp(decimalPercision, 0, math.huge)
-        local slidereBg = util.create("Frame", {
+        local decimalPercision = math.clamp(decimalPercision, 0, math.huge)
+        local sliderBg = util.create("Frame", {
             Parent = category,
             BackgroundColor3 = loadedTheme.widget.useCustomColors and loadedTheme.widget.primaryBg or loadedTheme.background,
             Size = UDim2.new(1, 0, 0, 50),
             Position = UDim2.new(0,0,0,util.getPos(category)),
         })
-        util.roundify(slidereBg, loadedTheme.widgetCornerRadius)
+        util.roundify(sliderBg, loadedTheme.widgetCornerRadius)
         local barBg = util.create("TextButton", {
             Text = "",
-            Parent = slidereBg,
+            Parent = sliderBg,
             Size = UDim2.new(1,-20,0,7),
             Position = UDim2.new(0,10, 1,-19),
             BackgroundColor3 = loadedTheme.widget.useCustomColors and loadedTheme.widget.secondaryBg or loadedTheme.topbar,
@@ -676,12 +747,12 @@ carbon = {
         bar.Size = UDim2.new((math.clamp(default, min, max) - min) / (max-min), 0, 1, 0)
         util.roundify(barBg, loadedTheme["widget"]["isSliderRound"] and 12 or 0)
         util.roundify(bar, loadedTheme["widget"]["isSliderRound"] and 12 or 0)
-        util.create("TextLabel", {
+        local txt = util.create("TextLabel", {
             Font = loadedTheme["font"],
             FontSize = loadedTheme["fontSize"],
             Text = "  " .. text,
             TextColor3 = loadedTheme.secondaryForeground,
-            Parent = slidereBg,
+            Parent = sliderBg,
             Position = UDim2.new(0,0,0,0),
             Size = UDim2.new(1,0,0.5,0),
             BackgroundTransparency = 1,
@@ -692,7 +763,7 @@ carbon = {
             FontSize = loadedTheme["fontSize"],
             Text = tostring(math.clamp(default, min, max)) .. "  ",
             TextColor3 = loadedTheme.secondaryForeground,
-            Parent = slidereBg,
+            Parent = sliderBg,
             Position = UDim2.new(0,0,0,0),
             Size = UDim2.new(1,0,0.5,0),
             BackgroundTransparency = 1,
@@ -712,7 +783,7 @@ carbon = {
         mouse.Button1Up:Connect(endDrag)
         task.spawn(function()
             while true do
-                if dragging then
+                if dragging and not sliderBg:FindFirstChild("disabled") then
                     local percent = math.clamp((mouse.X - barBg.AbsolutePosition.X) / barBg.AbsoluteSize.X, 0, 1)
                     local value = math.round((percent * (max-min) + min)*(10^decimalPercision))/(10^decimalPercision)
                     display.Text = tostring(value) .. "  "
@@ -722,7 +793,42 @@ carbon = {
                 task.wait()
             end
         end)
-        return slidereBg
+        return {
+            sliderBg,
+            setMin = function(newMin)
+                min = newMin
+            end,
+            setMax = function(newMax)
+                max = newMax
+            end,
+            setDefault = function(newDef)
+                default = newDef
+                bar.Size = UDim2.new((math.clamp(default, min, max) - min) / (max-min), 0, 1, 0)
+            end,
+            setPercision = function(newPer)
+                decimalPercision = newPer
+            end,
+            setPercent = function(v)
+                local percent = v
+                local value = math.round((percent * (max-min) + min)*(10^decimalPercision))/(10^decimalPercision)
+                display.Text = tostring(value) .. "  "
+                bar.Size = UDim2.new((math.clamp(default, min, max) - min) / (max-min), 0, 1, 0)
+            end,
+            setValue = function(v)
+                local value = v*(10^decimalPercision)/(10^decimalPercision)
+                display.Text = tostring(value) .. "  "
+                bar.Size = UDim2.new((math.clamp(default, min, max) - min) / (max-min), 0, 1, 0)
+            end,
+            setLabelText = function(_txt)
+                txt.text = _txt
+            end,
+            disable = function()
+                util.disable(barBg)
+            end,
+            enable = function()
+                util.enable(barBg)
+            end
+        }
     end,
     addInput = function(category, text, callback)
         if not
@@ -736,7 +842,7 @@ carbon = {
             Position = UDim2.new(0,0,0,util.getPos(category)),
         })
         util.roundify(inputBg, loadedTheme.widgetCornerRadius)
-        util.create("TextLabel", {
+        local txt = util.create("TextLabel", {
             Font = loadedTheme["font"],
             FontSize = loadedTheme["fontSize"],
             Text = "  " .. text,
@@ -763,7 +869,26 @@ carbon = {
         input.FocusLost:Connect(function()
             callback(input.Text)
         end)
-        return inputBg
+        task.spawn(function()
+            while task.wait() do
+                input.TextEditable = not inputBg:FindFirstChild("disabled")
+            end
+        end)
+        return {
+            inputBg,
+            setLabelText = function(_txt)
+                txt.Text = _txt
+            end,
+            setInputText = function(_txt)
+                input.Text = _txt
+            end,
+            disable = function()
+                util.disable(inputBg)
+            end,
+            enable = function()
+                util.enable(inputBg)
+            end
+        }
     end,
     addRGBColorPicker = function(category, text, callback)
         if not
@@ -777,7 +902,7 @@ carbon = {
             Position = UDim2.new(0,0,0,util.getPos(category)),
         })
         util.roundify(bg, loadedTheme.widgetCornerRadius)
-        util.create("TextLabel", {
+        local txt = util.create("TextLabel", {
             Font = loadedTheme["font"],
             FontSize = loadedTheme["fontSize"],
             Text = "  " .. text,
@@ -801,6 +926,7 @@ carbon = {
         })
         util.roundify(colorBtn, loadedTheme.widgetCornerRadius)
         colorBtn.MouseButton1Down:Connect(function()
+            if bg:FindFirstChild("disabled") then return end
             if root:FindFirstChild("RGBSelection") then
                 root.RGBSelection:Destroy()
             end
@@ -1131,23 +1257,49 @@ carbon = {
                 end
             end)
         end)
-        return bg
+        return {
+            bg,
+            setLabelText = function(_txt)
+                txt.text = _txt
+            end,
+            setValue = function(v)
+                colorBtn.BackgroundColor3 = v
+            end,
+            disable = function()
+                util.disable(bg)
+            end,
+            enable = function()
+                util.enable(bg)
+            end
+        }
     end,
     addLabel = function(category, text)
         if not
             util.depend(util.isCategory(category), "Can't add a label to non-category") or not
             util.depend(util.checkTypes({text}, {"string"}), "Invalid types passed to carbon.addLabel")
         then return end
-        return util.roundify(util.create("TextLabel", {
+        local txt = util.create("TextLabel", {
             Parent = category,
-            BackgroundColor3 = loadedTheme.widget.useCustomColors and loadedTheme.widget.primaryBg or loadedTheme.background,
+            BackgroundTransparency = 1,
             Font = loadedTheme["font"],
             FontSize = loadedTheme["fontSize"],
             Text = text,
             TextColor3 = loadedTheme.secondaryForeground,
             Size = UDim2.new(1, 0, 0, 25),
             Position = UDim2.new(0,0,0,util.getPos(category))
-        }), loadedTheme.widgetCornerRadius)
+        })
+        return {
+            txt,
+            setText = function(_txt)
+                txt.Text = _txt
+            end,
+            disable = function()
+                util.disable(txt)
+            end,
+            enable = function()
+                util.enable(txt)
+            end
+        }
     end,
     addDropdown = function(category, text, values, default, callback)
         if not
@@ -1161,7 +1313,7 @@ carbon = {
             Position = UDim2.new(0,0,0,util.getPos(category)),
         })
         util.roundify(dropdownBg, loadedTheme.widgetCornerRadius)
-        util.create("TextLabel", {
+        local txt = util.create("TextLabel", {
             Font = loadedTheme["font"],
             FontSize = loadedTheme["fontSize"],
             Text = "  " .. text,
@@ -1195,6 +1347,7 @@ carbon = {
             BackgroundTransparency = 1
         })
         selectBtn.MouseButton1Down:Connect(function()
+            if dropdownBg:FindFirstChild("disabled") then return end
             if root:FindFirstChild(text .. "Sel") then
                 root:FindFirstChild(text .. "Sel"):TweenSize(UDim2.new(0, selectBtn.AbsoluteSize.X, 0, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, 0.2, true)
                 task.delay(0.2, function()root:FindFirstChild(text .. "Sel"):Destroy()end)
@@ -1233,12 +1386,26 @@ carbon = {
             end
             selection:TweenSize(UDim2.new(0, selectBtn.AbsoluteSize.X, 0, #values * 20), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, 0.2, true)
         end)
-        return dropdownBg
+        return {
+            dropdownBg,
+            setLabelText = function(_txt)
+                txt.Text = _txt
+            end,
+            setValue = function(v)
+                selectBtn.Text = v
+            end,
+            disable = function()
+                util.disable(dropdownBg)
+            end,
+            enable = function()
+                util.enable(dropdownBg)
+            end
+        }
     end,
-    addKeybind = function(category, text, allowHold, callback)
+    addKeybind = function(category, text, allowHold, default, callback)
         if not
             util.depend(util.isCategory(category), "Can't add a keybind to non-category") or not
-            util.depend(util.checkTypes({text, allowHold, callback}, {"string", "boolean", "function"}), "Invalid types passed to carbon.addKeybinds")
+            util.depend(util.checkTypes({text, allowHold, default, callback}, {"string", "boolean", "string", "function"}), "Invalid types passed to carbon.addKeybinds")
         then return end
         local kbBg = util.create("Frame", {
             Parent = category,
@@ -1247,7 +1414,7 @@ carbon = {
             Position = UDim2.new(0,0,0,util.getPos(category)),
         })
         util.roundify(kbBg, loadedTheme.widgetCornerRadius)
-        util.create("TextLabel", {
+        local txt = util.create("TextLabel", {
             Font = loadedTheme["font"],
             FontSize = loadedTheme["fontSize"],
             Text = "  " .. text,
@@ -1259,7 +1426,7 @@ carbon = {
             TextXAlignment = Enum.TextXAlignment.Left
         })
         local key = util.create("TextButton", {
-            Text = "[ Keybind ]",
+            Text = "[ " .. default .. " ]",
             Font = loadedTheme["font"],
             FontSize = loadedTheme["fontSize"],
             TextColor3 = loadedTheme.secondaryForeground,
@@ -1270,7 +1437,9 @@ carbon = {
             TextXAlignment = Enum.TextXAlignment.Center
         })
         util.roundify(key, loadedTheme.widgetCornerRadius)
+        handlers[Enum.KeyCode[default]] = {callback, allowHold}
         key.MouseButton1Down:Connect(function()
+            if kbBg:FindFirstChild("disabled") then return end
             if settingKeybind then return end
             settingKeybind = true
             key.Text = "[ ... ]"
@@ -1281,9 +1450,26 @@ carbon = {
                 bindingFunc = function(k) end
             end
         end)
-        return kbBg
+        return {
+            kbBg,
+            setLabelText = function(_txt)
+                txt.Text = _txt
+            end,
+            setKey = function(k)
+                handlers[Enum.KeyCode[default]] = {callback, allowHold}
+                key.Text = "[ " .. k .. " ]"
+            end,
+            disable = function()
+                util.disable(kbBg)
+            end,
+            enable = function()
+                util.enable(kbBg)
+            end
+        }
     end,
     inline = function(oldWidget, newWidget)
+        oldWidget = oldWidget[1]
+        newWidget = newWidget[1]
         if oldWidget.Parent.Parent.Name ~= "category" then
             warn("Attempt to inline widget to nonwidget!")
             return
@@ -1316,8 +1502,8 @@ carbon = {
 
         local gradient = util.create("UIGradient", {
             Color = ColorSequence.new({
-                ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 212)),
-                ColorSequenceKeypoint.new(1, Color3.fromRGB(153, 0, 255))
+                ColorSequenceKeypoint.new(0, loadedTheme.accent),
+                ColorSequenceKeypoint.new(1, loadedTheme.secondaryAccent)
             }),
             Parent = border,
             Rotation = 45
@@ -1429,17 +1615,21 @@ carbon = {
                 end)
             end)
         end
-        return shadow
+        return {
+            shadow,
+            destroy = function()
+                shadow:Destroy()
+            end
+        }
     end,
     newNotif = function(type_, title, msg)
         for _,v in pairs(root:GetChildren()) do
             if v:FindFirstChild("Notif") then
-                if v.Position.X.Offset == 0 then continue end
-                v:TweenPosition(UDim2.new(1, -250, 0, v.AbsolutePosition.Y - 100), Enum.EasingDirection.Out, Enum.EasingStyle.Quint, 0.25, false)
+                v.pos.Value -= 100
             end
         end
         local border = util.create("Frame", {
-            Size = UDim2.new(0, 254, 0, 77),
+            Size = UDim2.new(0, 404, 0, 77),
             Position = UDim2.new(1, 0, 1, -100),
             Parent = root,
             Name = "Notif",
@@ -1448,6 +1638,12 @@ carbon = {
         })
         util.roundify(border, loadedTheme.cornerRadius)
         local shadow = util.addShadow(border, loadedTheme.shadowStrength)
+        shadow.Name = "Notif"
+        local pos = util.create("IntValue", {
+            Value = -100,
+            Parent = shadow,
+            Name = "pos"
+        })
 
         local colors = {
             ERR = ColorSequence.new({
@@ -1516,7 +1712,12 @@ carbon = {
             TextXAlignment = Enum.TextXAlignment.Left,
             TextYAlignment = Enum.TextYAlignment.Top,
         })
-        shadow:TweenPosition(UDim2.new(1, -250, 0, border.AbsolutePosition.Y), Enum.EasingDirection.Out, Enum.EasingStyle.Quint, 0.25, true)
+        shadow:TweenPosition(UDim2.new(1, -404, 0, border.AbsolutePosition.Y), Enum.EasingDirection.Out, Enum.EasingStyle.Quint, 0.25, true)
+        task.spawn(function()
+            while task.wait() do
+                shadow:TweenPosition(UDim2.new(1, -404, 1, pos.Value), Enum.EasingDirection.InOut, Enum.EasingStyle.Quart, 0.25, false)
+            end
+        end)
         task.delay(5, function()
             shadow:TweenPosition(UDim2.new(1, 0, 0, border.AbsolutePosition.Y), Enum.EasingDirection.Out, Enum.EasingStyle.Quint, 0.25, true)
             wait(0.25)
@@ -1524,13 +1725,23 @@ carbon = {
         end)
     end,
     addSeparator = function(category)
-        return util.create("Frame", {
+        local bg = util.create("Frame", {
             Parent = category,
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 0, 20),
+            Position = UDim2.new(0, 5, 0, util.getPos(category))
+        })
+        local a = util.create("Frame", {
+            Parent = bg,
             BackgroundColor3 = loadedTheme.secondaryForeground,
             Size = UDim2.new(1, -10, 0, 1),
-            Position = UDim2.new(0, 5, 0, util.getPos(category)),
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            Position = UDim2.new(0.5, -5, 0.5, 0),
             BorderSizePixel = 0
         })
+        return {
+            bg
+        }
     end,
     addNamedSeparator = function(category, name)
         local bg = util.create("Frame", {
@@ -1560,7 +1771,12 @@ carbon = {
             Position = UDim2.new(0.5, 0, 0.5, 0),
             BorderSizePixel = 0
         })
-        return bg
+        return {
+            bg,
+            setName = function(n)
+                b.Text = n
+            end
+        }
     end,
     util = util,
     loadTheme = loadTheme, -- Might move into util, though it's not as clean (util is mostly reserved for developer shit)
