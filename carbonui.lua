@@ -157,8 +157,7 @@ local util = {
         while #categories > 0 do
             if categories[1].Size.X.Scale == 1 then
                 table.insert(fw, categories[1])
-            end
-            if getTotalSize(row1, categories[1]) > getTotalSize(row2, categories[1]) then
+            elseif getTotalSize(row1, categories[1]) > getTotalSize(row2, categories[1]) then
                 table.insert(row2, categories[1])
             else
                 table.insert(row1, categories[1])
