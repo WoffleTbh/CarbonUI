@@ -155,6 +155,9 @@ local util = {
         local row2 = {}
         local fw = {}
         while #categories > 0 do
+            if categories[1].Size.X.Scale == 1 then
+                table.insert(fw, categories[1])
+            end
             if getTotalSize(row1, categories[1]) > getTotalSize(row2, categories[1]) then
                 table.insert(row2, categories[1])
             else
@@ -1720,7 +1723,7 @@ carbon = {
         end)
         task.delay(5, function()
             shadow:TweenPosition(UDim2.new(1, 0, 0, border.AbsolutePosition.Y), Enum.EasingDirection.Out, Enum.EasingStyle.Quint, 0.25, true)
-            wait(0.25)
+            task.wait(0.25)
             shadow:Destroy()
         end)
     end,
