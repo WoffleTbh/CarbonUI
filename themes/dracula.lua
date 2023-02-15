@@ -1,6 +1,6 @@
 return {
-    background = Color3.fromRGB(40, 42, 54),
-    topbar = Color3.fromRGB(52, 55, 70),
+    background = Color3.fromRGB(52, 55, 70),
+    topbar = Color3.fromRGB(40, 42, 54),
     accent = Color3.fromRGB(255, 121, 198),
     secondaryAccent = Color3.fromRGB(189, 147, 249),
     foreground = Color3.fromRGB(248, 248, 242),
@@ -59,5 +59,18 @@ return {
             borderType = "inner",
             useBorderOnExtras = true
         }
+    },
+    syntaxHighlighting = { -- TODO: Make these values correct
+        keywords = Color3.fromHex("#bb9af7"),
+        functions = Color3.fromHex("#7aa2f7"),
+        comments = Color3.fromHex("#565f89"),
+        strings = Color3.fromHex("#9ece6a"),
+        numbers = Color3.fromHex("#ff9e64"),
+        globals = Color3.fromHex("#7aa2f7"),
+        special = Color3.fromHex("#2ac3de"),
+        operators = Color3.fromHex("#73daca"),
+
+        foreground = Color3.fromHex("#a9b1d6"),
+        background = Color3.fromHex("#1a1b26"),
     }
 }

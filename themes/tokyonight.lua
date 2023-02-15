@@ -59,5 +59,18 @@ return {
             borderType = "inner",
             useBorderOnExtras = true
         }
+    },
+    syntaxHighlighting = {
+        keywords = Color3.fromHex("#bb9af7"),
+        functions = Color3.fromHex("#7aa2f7"),
+        comments = Color3.fromHex("#565f89"),
+        strings = Color3.fromHex("#9ece6a"),
+        numbers = Color3.fromHex("#ff9e64"),
+        globals = Color3.fromHex("#7aa2f7"),
+        special = Color3.fromHex("#2ac3de"),
+        operators = Color3.fromHex("#73daca"),
+
+        foreground = Color3.fromHex("#a9b1d6"),
+        background = Color3.fromHex("#1a1b26"),
     }
 }
