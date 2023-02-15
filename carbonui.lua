@@ -12,6 +12,7 @@ local settings_autoFormatTabs = getgenv()["autoFormatTabs"] or true
 local settings_user = getgenv()["user"] or "WoffleTbh"
 local settings_repo = getgenv()["repo"] or "CarbonUI"
 local settings_theme = getgenv()["theme"] or "tokyonight-storm"
+local settings_token = getgenv()["token"]
 
 -----------
 
@@ -25,7 +26,7 @@ local mouse = plr:GetMouse()
 
 local loadedTheme
 
-local function loadTheme(theme) loadedTheme = loadstring(game:HttpGet("https://raw.githubusercontent.com/" .. settings_user .. "/" .. settings_repo .. "/main/themes/" .. theme ..".lua"))() end
+local function loadTheme(theme) loadedTheme = loadstring(game:HttpGet("https://raw.githubusercontent.com/" .. settings_user .. "/" .. settings_repo .. "/main/themes/" .. theme ..".lua" .. (settings_token and ("?token=" .. settings_token) or "")))() end
 local function loadThemeFromFile(fileName) loadedTheme = loadstring(readfile(fileName))() end
 
 loadTheme(settings_theme)
@@ -38,7 +39,7 @@ local util = {
             o[i] = v
         end
         if properties["Parent"] then
-            o.Parent = type(properties["Parent"]) == "table" and properties["Parent"][1] or properties["Parent"]
+            o.Parent = (type(properties["Parent"]) == "table" and properties["Parent"][1]) or properties["Parent"]
         end
         if properties["BorderSizePixel"] then return o end -- Prevent fancy stuff from happening on explicitly no-border stuff
         if o:IsA("GuiObject") then
@@ -186,6 +187,29 @@ local util = {
         end
     end
 }
+
+local lang = {
+    lua = {
+        keywords = {"continue", "and", "break", "do", "else", "elseif", "end", "for", "function", "goto", "if", "in", "local", "not", "or", "repeat", "return", "then", "until", "while"},
+        globals = {"game", "workspace", "script", "math", "string", "table", "print", "wait", "BrickColor", "Color3", "next", "pairs", "ipairs", "select", "unpack", "Instance", "Vector2", "Vector3", "CFrame", "Ray", "UDim2", "Enum", "assert", "error", "warn", "tick", "loadstring", "_G", "shared", "getfenv", "setfenv", "newproxy", "pcall", "ypcall", "xpcall", "rawequal", "rawset", "rawget", "tonumber", "tostring", "type", "typeof", "_VERSION", "coroutine", "delay", "require", "spawn", "LoadLibrary", "settings", "stats", "time", "UserSettings", "version", "Axes", "ColorSequence", "Faces", "ColorSequenceKeypoint", "NumberRange", "NumberSequence", "NumberSequenceKeypoint", "elapsedTime", "PhysicalProperties", "Rect", "Region3", "Region3int16", "UDim", "Vector2int16", "Vector3int16"},
+        special = {"getrawmetatable", "setreadonly", "setmetatable", "getmetatable", "hookfunction", "hookmetamethod", "decompile", "getscriptbytecode", "Drawing", "getgenv", "getgc", "getrenv", "getsenv"},
+        operators = "()[]{}#,.-+*/=<>~^"
+    }
+}
+
+local icon = {
+    copy      = "rbxassetid://12497486125",
+    cursor    = "rbxassetid://12497489274",
+    cut       = "rbxassetid://12497490584",
+    checkmark = "rbxassetid://12497491532",
+    delete    = "rbxassetid://12497492832",
+    edit      = "rbxassetid://12497493748",
+    redo      = "rbxassetid://12497494530",
+    run       = "rbxassetid://12497561744",
+    stop      = "rbxassetid://12497562859",
+    pause     = "rbxassetid://12497563941"
+}
+
 util.disable = function(widget)
     widget = widget[1]
     if widget:FindFirstChild("disabled") then return end
@@ -287,8 +311,10 @@ task.spawn(function()
 end)
 
 carbon = {
-    new = function(width, height, title, icon)
+    new = function(width, height, title, icon, btnOrder, btnPos)
         if not util.depend(util.checkTypes({width, height, title}, {"number", "number", "string"}), "Invalid types passed to carbon.new") then return end
+        if not btnOrder then btnOrder = "CM" end
+        if not btnPos then btnPos = "right" end
         local border = util.create("Frame", {
             Size = UDim2.new(0, width + 4, 0, height + 4),
             Position = UDim2.new(0,10,0,10),
@@ -393,7 +419,7 @@ carbon = {
             Parent = tabs
         })
 
-        util.create("TextLabel", {
+        local _title = util.create("TextLabel", {
             Size = UDim2.new(0, width-(icon and 30 or 0), 0, 30),
             Position = UDim2.new(0, icon and 30 or 0, 0, 0),
             BackgroundTransparency = 1,
@@ -408,9 +434,28 @@ carbon = {
 
         -- control buttons
 
+        local closePos = 0
+        local minPos = 0
+        local off = 15
+        for i = 1, string.len(btnOrder) do
+            if string.sub(btnOrder, i, i) == "M" then
+                minPos = off
+            elseif string.sub(btnOrder, i, i) == "C" then
+                closePos = off
+            end
+            off += 20
+        end
+        local i = 0
+        local j = 1
+        if btnPos == "right" then
+            i = 1
+            j = -1
+        else
+            _title.Position += UDim2.new(0, off - 10, 0, 0)
+        end
         local close = util.create("TextButton", {
             Size = UDim2.new(0, 15, 0, 15),
-            Position = UDim2.new(1, -20, 0.5, -7.5),
+            Position = UDim2.new(i, closePos * j, 0.5, 0),
             BackgroundColor3 = loadedTheme.closeBtnColor,
             Parent = topbar,
             ZIndex = 4,
@@ -418,6 +463,7 @@ carbon = {
             Font = loadedTheme["font"],
             FontSize = loadedTheme["fontSize"],
             TextColor3 = loadedTheme.foreground,
+            AnchorPoint = Vector2.new(0.5, 0.5)
         })
         util.roundify(close, 15)
         close.MouseButton1Down:Connect(function()
@@ -426,7 +472,7 @@ carbon = {
 
         local minimize = util.create("TextButton", {
             Size = UDim2.new(0, 15, 0, 15),
-            Position = UDim2.new(1, -40, 0.5, -7.5),
+            Position = UDim2.new(i, minPos * j, 0.5, 0),
             BackgroundColor3 = loadedTheme.minimizeBtnColor,
             Parent = topbar,
             ZIndex = 4,
@@ -434,6 +480,7 @@ carbon = {
             Font = loadedTheme["font"],
             FontSize = loadedTheme["fontSize"],
             TextColor3 = loadedTheme.foreground,
+            AnchorPoint = Vector2.new(0.5, 0.5)
         })
         util.roundify(minimize, 15)
         local minimized = false
@@ -443,7 +490,9 @@ carbon = {
                 minimized = true
                 maximizer.Visible = true
                 shadow:TweenSize(UDim2.new(0, 30, 0, 30), Enum.EasingDirection.InOut, Enum.EasingStyle.Sine, 0.25, true)
-                main.Visible = false
+                task.delay(0.25, function()
+                    main.Visible = false
+                end)
             else
                 minimized = false
                 maximizer.Visible = false
@@ -637,7 +686,7 @@ carbon = {
         return {
             btn,
             click = function()
-                click(btn.Position.X.Offset + btn.Size.X.Offset / 2 - btn.AbsolutePosition.X, btn.Position.Y.Offset + btn.Size.Y.Offset / 2 - btn.AbsolutePosition.Y)
+                click(btn.AbsolutePosition.X + btn.AbsoluteSize.X / 2 - btn.AbsolutePosition.X, btn.AbsolutePosition.Y + btn.AbsoluteSize.Y / 2 - btn.AbsolutePosition.Y)
             end,
             setText = function(txt)
                 btn.Text = txt
@@ -1779,6 +1828,546 @@ carbon = {
                 b.Text = n
             end
         }
+    end,
+    addRichLabel = function(category, text, font, fontSize, textColor, bgColor, height, canvasSize, isCodePreview, codeTokens, customCodeTheme, editable)
+        codeTokens = codeTokens or util.luaTokens
+        local codeTheme = customCodeTheme or loadedTheme.syntaxHighlighting
+        local bg = util.create("Frame", {
+            Parent = category,
+            BackgroundColor3 = loadedTheme.widget.useCustomColors and loadedTheme.widget.primaryBg or loadedTheme.background,
+            Size = UDim2.new(1, 0, 0, 25 * height),
+            Position = UDim2.new(0,0,0,util.getPos(category)),
+        })
+        util.roundify(bg, loadedTheme.widgetCornerRadius)
+        local scroller = util.create("ScrollingFrame", {
+            Parent = bg,
+            Size = UDim2.new(1, -10, 1, -10),
+            Position = UDim2.new(0, 5, 0, 5),
+            BorderSizePixel = 0,
+            CanvasSize = canvasSize,
+            BackgroundTransparency = 1
+        })
+        local _t = "TextLabel"
+        if editable then _t = "TextBox" end
+        local txt = util.create(_t, {
+            Parent = scroller,
+            Size = UDim2.new(1, 0, 1, 0),
+            Position = UDim2.new(0, 0, 0, 0),
+            Text = text,
+            Font = (isCodePreview and Enum.Font.Code) or (font and font) or (loadedTheme.font),
+            FontSize = fontSize,
+            TextColor3 = (isCodePreview and codeTheme.foreground) or textColor,
+            BackgroundColor3 = (isCodePreview and codeTheme.background) or bgColor,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            TextYAlignment = Enum.TextYAlignment.Top
+        })
+        if editable then txt.ClearTextOnFocus = false; txt.MultiLine = true end
+
+        local keywords, functions, comments, strings, numbers, special, operators, globals, lines, _pairs
+        local function updateLineCount()
+            lines.Text = ""
+            local _,c = string.gsub(txt.Text, "\n", "")
+            for i = 1, c + 1 do
+                lines.Text ..= tostring(i) .. "\n"
+            end
+        end
+        local function updatePairs()
+            _pairs:ClearAllChildren()
+            local openings = {"do", "then", "{", "[", "(", "else", "elseif", "function"}
+            local endings = {"end", "}", "]", ")"}
+            local matches = {
+                ["do"] = "end",
+                ["then"] = "end",
+                ["else"] = "end",
+                ["function"] = "end",
+                ["{"] = "}",
+                ["["] = "]",
+                ["("] = ")"
+            }
+            local activeOpenings = 0
+            for lineNum, line in pairs(string.split(txt.Text, "\n")) do
+                local _openings = {}
+                local hasOpening = false
+                for _, _opening in pairs(openings) do
+                    if string.find(line, _opening, 1, true) then
+                        table.insert(_openings, _opening)
+                        hasOpening = true
+                    end
+                end
+                local _endings = {}
+                local hasEnding = false
+                for _, _ending in pairs(endings) do
+                    if string.find(line, _ending, 1, true) then
+                        table.insert(_endings, _ending)
+                        hasEnding = true
+                    end
+                end
+                local sy
+                lineNum += 3
+                sy = game:GetService("TextService"):GetTextSize(string.rep("a\n", math.clamp(lineNum - 2, 0, math.huge)), tonumber(string.sub(fontSize.Name, 5)), Enum.Font.Code, Vector2.new(math.huge, math.huge)).Y + 4
+                local oneSy = (sy-4) / lineNum
+                local off = game:GetService("TextService"):GetTextSize(string.rep("a\n", 2), tonumber(string.sub(fontSize.Name, 5)), Enum.Font.Code, Vector2.new(math.huge, math.huge)).Y + 4
+                if #_openings == #_endings then
+                    local __pairs = 0
+                    for i = 1, #_openings do
+                        if table.find(_endings, matches[_openings[i]]) then
+                            __pairs += 1
+                        end
+                    end
+                    if __pairs == #_openings and hasOpening then
+                        local _line = util.create("Frame", {
+                            BackgroundColor3 = codeTheme.foreground,
+                            BorderSizePixel = 0,
+                            Size = UDim2.new(0, 1, 0, sy / (lineNum - 2)),
+                            Position = UDim2.new(0.5, 0, 0, sy - off),
+                            AnchorPoint = Vector2.new(0.5, 0),
+                            Parent = _pairs
+                        })
+                        continue
+                    end
+                end
+                for _, _opening in pairs(_openings) do
+                    if _opening ~= "else" then
+                        activeOpenings += 1
+                    end
+                    if _opening == "elseif" then
+                        activeOpenings -= 2
+                    end
+                end
+                for _, _ending in pairs(_endings) do
+                    activeOpenings -= 1
+                    if activeOpenings < 0 then activeOpenings = 0 end
+                end
+                if hasOpening then
+                    local block = util.create("Frame", {
+                        BackgroundColor3 = codeTheme.foreground,
+                        BorderSizePixel = 0,
+                        Size = UDim2.new(0, 6, 0, 6),
+                        Position = UDim2.new(0.5, 0, 0, sy + oneSy / 2 - off),
+                        AnchorPoint = Vector2.new(0.5, 0),
+                        Parent = _pairs
+                    })
+                    if activeOpenings > 0 then
+                        local _line = util.create("Frame", {
+                            BackgroundColor3 = codeTheme.foreground,
+                            BorderSizePixel = 0,
+                            Size = UDim2.new(0, 1, 1, 0),
+                            Position = UDim2.new(0.5, 0, 1, 0),
+                            AnchorPoint = Vector2.new(0.5, 0),
+                            Parent = block
+                        })
+                    end
+                elseif activeOpenings > 0 then
+                    local _line = util.create("Frame", {
+                        BackgroundColor3 = codeTheme.foreground,
+                        BorderSizePixel = 0,
+                        Size = UDim2.new(0, 1, 0, oneSy + 4),
+                        Position = UDim2.new(0.5, 0, 0, sy - off + 2),
+                        AnchorPoint = Vector2.new(0.5, 0),
+                        Parent = _pairs
+                    })
+                    if hasEnding then
+                        local _line = util.create("Frame", {
+                            BackgroundColor3 = codeTheme.foreground,
+                            BorderSizePixel = 0,
+                            Size = UDim2.new(0.5, 0, 0, 1),
+                            Position = UDim2.new(0.75, 0, 0, sy - off + oneSy / 1.5),
+                            AnchorPoint = Vector2.new(0.5, 0),
+                            Parent = _pairs
+                        })
+                    end
+                elseif hasEnding then
+                    util.create("Frame", {
+                        BackgroundColor3 = codeTheme.foreground,
+                        BorderSizePixel = 0,
+                        Size = UDim2.new(0, 1, 0, oneSy / 2 + 2),
+                        Position = UDim2.new(0.5, 0, 0, sy - off),
+                        AnchorPoint = Vector2.new(0.5, 0),
+                        Parent = _pairs
+                    })
+                    util.create("Frame", {
+                        BackgroundColor3 = codeTheme.foreground,
+                        BorderSizePixel = 0,
+                        Size = UDim2.new(0.5, 0, 0, 1),
+                        Position = UDim2.new(0.75, 0, 0, sy - off + oneSy / 1.5),
+                        AnchorPoint = Vector2.new(0.5, 0),
+                        Parent = _pairs
+                    })
+                end
+            end
+        end
+        if isCodePreview then
+            local function createWithRef(ref, properties) local r = ref:clone() for k,v in properties do r[k] = v end r.Parent = ref.Parent return r end
+            local _,c = string.gsub(txt.Text, "\n", "")
+            local sx = game:GetService("TextService"):GetTextSize(c, tonumber(string.sub(fontSize.Name, 5)), Enum.Font.Code, Vector2.new(math.huge, math.huge)).X + 4
+            txt.Size -= UDim2.new(0, sx + 10, 0, 0)
+            txt.Position += UDim2.new(0, sx + 10, 0, 0)
+            lines = createWithRef(txt, {
+                Parent = scroller,
+                Size = UDim2.new(0, sx, 1, 0),
+                Position = UDim2.new(0, 0, 0, 0),
+                Text = ""
+            })
+            updateLineCount()
+            _pairs = createWithRef(txt, {
+                Parent = scroller,
+                Size = UDim2.new(0, 10, 1, 0),
+                Position = UDim2.new(0, sx, 0, 0),
+                Text = ""
+            })
+            updatePairs()
+            keywords = util.create("TextLabel", { -- local, if, then, end, etc
+                Parent = txt,
+                TextColor3 = codeTheme.keywords,
+                Text = "",
+                BackgroundTransparency = 1,
+                ZIndex = 5,
+                Size = UDim2.new(1, 0, 1, 0),
+                Position = UDim2.new(0, 0, 0, 0),
+                Font = (isCodePreview and Enum.Font.Code) or (font and font) or (loadedTheme.font),
+                FontSize = fontSize,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                TextYAlignment = Enum.TextYAlignment.Top
+            })
+            functions = createWithRef(keywords, { -- somefunc()
+                TextColor3 = codeTheme.functions,
+                ZIndex = 4
+            })
+            comments = createWithRef(keywords, { -- -- abc
+                TextColor3 = codeTheme.comments
+            })
+            strings = createWithRef(keywords, { -- "amogus" 'sus' [[amogus sus]]
+                TextColor3 = codeTheme.strings
+            })
+            numbers = createWithRef(keywords, { -- 123, true, nil
+                TextColor3 = codeTheme.numbers
+            })
+            globals = createWithRef(keywords, { -- UDim2.new, table.insert, etc
+                TextColor3 = codeTheme.globals
+            })
+            special = createWithRef(keywords, { -- UDim2.new, table.insert, etc
+                TextColor3 = codeTheme.special
+            })
+            operators = createWithRef(keywords, { -- +, -, #, etc
+                TextColor3 = codeTheme.operators
+            })
+        end
+
+        local function advance(t, n)
+            for _,v in pairs(t) do
+                v.Text ..= type(n) == "number" and string.rep(" ", n) or (((n == "\n" or n == "\t") and n) or " ")
+            end
+        end
+
+        local function _highlight()
+            keywords.Text = ""
+            functions.Text = ""
+            comments.Text = ""
+            strings.Text = ""
+            numbers.Text = ""
+            globals.Text = ""
+            special.Text = ""
+            operators.Text = ""
+            txt.Text = string.gsub(txt.Text, "\t", "    ")
+            txt.Text ..= ""
+            local i = 1
+            while i < string.len(txt.Text) do
+                local chr = string.sub(txt.Text, i, i)
+                if chr == nil then break end
+                if string.find("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_", chr, 1, true) then
+                    local buf = ""
+                    while i < string.len(txt.Text) and chr and string.find("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_1234567890", chr, 1, true) do
+                        buf ..= chr
+                        i += 1
+                        chr = string.sub(txt.Text, i, i)
+                        advance({
+                            comments, strings, operators
+                        }, 1)
+                    end
+                    i -= 1
+                    local found = false
+                    for _,keyword in pairs(codeTokens.keywords) do
+                        if buf == keyword then
+                            found = true
+                            keywords.Text ..= buf
+                            break
+                        end
+                    end
+                    if not found then
+                        advance({keywords}, string.len(buf))
+                    end
+                    found = false
+                    for _,glob in pairs(codeTokens.globals) do
+                        if buf == glob then
+                            found = true
+                            globals.Text ..= buf
+                            break
+                        end
+                    end
+                    if not found then
+                        advance({globals}, string.len(buf))
+                    end
+                    found = false
+                    for _,_special in pairs(codeTokens.special) do
+                        if buf == _special then
+                            found = true
+                            special.Text ..= buf
+                            break
+                        end
+                    end
+                    if not found then
+                        advance({special}, string.len(buf))
+                    end
+                    if i < string.len(txt.Text) and string.sub(txt.Text, i+1, i+1) == "(" then
+                        functions.Text ..= buf
+                    else
+                        advance({functions}, string.len(buf))
+                    end
+                    if buf == "nil" or buf == "true" or buf == "false" then
+                        numbers.Text ..= buf
+                    else
+                        advance({numbers}, string.len(buf))
+                    end
+                elseif i < string.len(txt.Text) and chr == "-" and string.sub(txt.Text, i+1, i+1) == "-" then
+                    advance({keywords, functions, strings, numbers, special, operators, globals}, 2)
+                    comments.Text ..= "--"
+                    i += 2
+                    chr = string.sub(txt.Text, i, i)
+                    local commentLen = 0
+                    local isMultiLine = false
+                    while true do
+                        comments.Text ..= chr
+                        advance({keywords, functions, strings, numbers, special, operators, globals}, chr)
+                        if i < string.len(txt.Text) and chr == "[" and string.sub(txt.Text, i+1, i+1) == "[" then
+                            isMultiLine = true
+                        end
+                        if i < string.len(txt.Text) and chr == "]" and string.sub(txt.Text, i+1, i+1) == "]" and isMultiLine then
+                            comments.Text ..= "]"
+                            i += 2
+                            break
+                        end
+                        i += 1
+                        chr = string.sub(txt.Text, i, i)
+                        commentLen += 1
+                        if commentLen == 10000 then
+                            break
+                        end
+                        if chr == "\n" and not isMultiLine then break end
+                    end
+                    i -= 1
+                elseif string.find("1234567890", chr, 1, true) then
+                    if i > 1 and string.find("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_", string.sub(txt.Text, i-1, i-1), 1, true) then
+                        i += 1
+                        advance({
+                            keywords, functions, comments, strings, special, operators, globals, numbers
+                        }, 1)
+                        continue
+                    end
+                    local buf = ""
+                    while i < string.len(txt.Text) and chr and string.find("1234567890", chr, 1, true) do
+                        buf ..= chr
+                        i += 1
+                        chr = string.sub(txt.Text, i, i)
+                        advance({
+                            keywords, functions, comments, strings, special, operators, globals
+                        }, 1)
+                    end
+                    i -= 1
+                    numbers.Text ..= buf
+                elseif chr == '"' or chr == "'" then
+                    local ending = chr
+                    strings.Text ..= ending
+                    i += 1
+                    chr = string.sub(txt.Text, i, i)
+                    local foundEnd = false
+                    while i < string.len(txt.Text) and chr and chr ~= ending do
+                        strings.Text ..= chr
+                        advance({
+                            keywords, functions, comments, special, operators, globals, numbers
+                        }, chr)
+                        i += 1
+                        chr = string.sub(txt.Text, i, i)
+                        if chr == ending then foundEnd = true end
+                    end
+                    if foundEnd then
+                        strings.Text ..= ending
+                    end
+                    chr = string.sub(txt.Text, i, i)
+                    advance({
+                        keywords, functions, comments, special, operators, globals, numbers
+                    }, 2)
+                elseif string.find(codeTokens.operators, chr, 1, true) then
+                    operators.Text ..= chr
+                    advance({
+                        keywords, functions, comments, strings, special, globals, numbers
+                    }, chr)
+                else
+                    advance({
+                        keywords, functions, comments, strings, special, operators, globals, numbers
+                    }, chr)
+                end
+                i += 1
+            end
+        end
+        if editable then
+            txt.Changed:Connect(function(property)
+                if property == "Text" then
+                    _highlight()
+                    updatePairs()
+                    updateLineCount()
+                end
+            end)
+        end
+        return {
+            bg,
+            highlight = _highlight,
+            setText = function(_txt)
+                txt.Text = _txt
+            end,
+            getText = function()
+                return txt.Text
+            end,
+            setFont = function(font)
+                txt.Font = isCodePreview and Enum.Font.Code or font
+            end,
+            setFontSize = function(fontSize)
+                txt.FontSize = fontSize
+            end,
+            setCanvasSize = function(size)
+                scroller.CanvasSize = size
+            end,
+            updateLineCount = updateLineCount,
+            updatePairs = updatePairs,
+            disable = function()
+                util.disable(bg)
+            end,
+            enable = function()
+                util.enable(bg)
+            end
+        }
+    end,
+    addContextMenu = function(widget, optionTree)
+        widget = widget[1]
+        local border
+        local function openMenu()
+            if mouse.X > widget.AbsolutePosition.X and mouse.Y > widget.AbsolutePosition.Y and mouse.X < widget.AbsolutePosition.X + widget.AbsoluteSize.X and mouse.Y < widget.AbsolutePosition.Y + widget.AbsoluteSize.Y then
+                if root:FindFirstChild("Ctx") then root.Ctx:Destroy() end
+                border = util.create("Frame", {
+                    Size = UDim2.new(0, 200, 0, 0),
+                    Position = UDim2.new(0, mouse.X, 0, mouse.Y),
+                    Parent = root,
+                    Name = "Ctx",
+                    ZIndex = 1,
+                    BackgroundTransparency = loadedTheme.carbonBorderEnabled and 0 or 1,
+                    ClipsDescendants = true
+                })
+                util.roundify(border, loadedTheme.widgetCornerRadius)
+                local gradient = util.create("UIGradient", {
+                    Color = ColorSequence.new({
+                        ColorSequenceKeypoint.new(0, loadedTheme.accent),
+                        ColorSequenceKeypoint.new(1, loadedTheme.secondaryAccent)
+                    }),
+                    Parent = border,
+                    Rotation = 45
+                })
+                task.spawn(function()
+                    while true do
+                        gradient.Rotation += 1
+                        task.wait()
+                    end
+                end)
+                local bg = util.create("Frame", {
+                    Parent = border,
+                    BackgroundColor3 = loadedTheme.widget.useCustomColors and loadedTheme.widget.primaryBg or loadedTheme.background,
+                    Size = UDim2.new(1, -2, 1, -2),
+                    Position = UDim2.new(0, 1, 0, 1),
+                })
+                util.roundify(bg, loadedTheme.widgetCornerRadius)
+                util.create("UIListLayout", {
+                    Parent = bg
+                })
+                local even = true
+                for btn,entry in pairs(optionTree) do
+                    local _btn = util.create("TextButton", {
+                        Parent = bg,
+                        Size = UDim2.new(1,0,0,20),
+                        BackgroundTransparency = 1,
+                        Font = loadedTheme.font,
+                        FontSize = Enum.FontSize.Size14,
+                        TextColor3 = loadedTheme.foreground,
+                        Text = btn,
+                        ClipsDescendants = true
+                    })
+                    if entry[2] ~= nil then
+                        util.create("ImageLabel", {
+                            Parent = _btn,
+                            Size = UDim2.new(0,20,0,20),
+                            Position = UDim2.new(0, 0, 0, 0),
+                            BackgroundTransparency = 1,
+                            Image = entry[2]
+                        })
+                    end
+                    local function click(x,y)
+                        entry[1]()
+                        local circleEffect = util.create("Frame", {
+                            Parent = _btn,
+                            BackgroundColor3 = Color3.new(1,1,1),
+                            Size = UDim2.new(0,1,0,1),
+                            Position = UDim2.new(0, x, 0, y),
+                            AnchorPoint = Vector2.new(0.5,0.5)
+                        })
+                        util.create("UICorner", {
+                            Parent = circleEffect,
+                            CornerRadius = UDim.new(1,0)
+                        })
+                        task.spawn(function()
+                            for i = 0,40 do
+                                circleEffect.Size += UDim2.new(0,25,0,25)
+                                circleEffect.BackgroundTransparency = i / 40
+                                task.wait()
+                            end
+                            circleEffect:Destroy()
+                        end)
+                    end
+                    _btn.MouseButton1Down:Connect(function()
+                        click(mouse.X - _btn.AbsolutePosition.X, mouse.Y - _btn.AbsolutePosition.Y)
+                    end)
+                    even = not even
+                end
+                local len = 0
+                for _ in optionTree do len += 1 end
+                border:TweenSize(UDim2.new(0, 200, 0, len * 20 + 2), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.1, true)
+            end
+        end
+        local function close()
+            if not border then return end
+            border:TweenSize(UDim2.new(0, 200, 0, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.1, true, function(c)
+                border:Destroy()
+                border = nil
+            end)
+        end
+        mouse.Button2Down:Connect(openMenu)
+        mouse.Button1Down:Connect(close)
+        if widget:IsA("TextButton") then
+            widget.MouseButton2Down:Connect(openMenu)
+            widget.MouseButton1Down:Connect(close)
+        end
+
+        for _,desc in pairs(widget:GetDescendants()) do -- Make sure the entire widget is interactable
+            if desc:IsA("TextButton") then
+                desc.MouseButton2Down:Connect(openMenu)
+                desc.MouseButton1Down:Connect(close)
+            end
+            if desc:IsA("TextBox") then
+                desc.InputBegan:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton2 then
+                        desc:ReleaseFocus()
+                        openMenu()
+                    end
+                end)
+                desc.Focused:Connect(close)
+            end
+        end
     end,
     util = util,
     loadTheme = loadTheme, -- Might move into util, though it's not as clean (util is mostly reserved for developer shit)
