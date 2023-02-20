@@ -167,9 +167,9 @@ local util = {
         end
         local offY = loadedTheme["tab"]["categorySpacing"]
         for i,category in pairs(fw) do
+            offY += fw[i].Position.Y.Offset + fw[i].Size.Y.Offset + loadedTheme["tab"]["categorySpacing"]
             if i == 1 then continue end
             category.Position = UDim2.new(0, 0, 0, fw[i-1].Position.Y.Offset + fw[i-1].Size.Y.Offset + 5)
-            offY += fw[i].Position.Y.Offset + fw[i].Size.Y.Offset + loadedTheme["tab"]["categorySpacing"]
         end
         for i,category in pairs(row1) do
             if i == 1 then
@@ -854,7 +854,6 @@ carbon = {
             end,
             setDefault = function(newDef)
                 default = newDef
-                bar.Size = UDim2.new((math.clamp(default, min, max) - min) / (max-min), 0, 1, 0)
             end,
             setPercision = function(newPer)
                 decimalPercision = newPer
@@ -863,12 +862,12 @@ carbon = {
                 local percent = v
                 local value = math.round((percent * (max-min) + min)*(10^decimalPercision))/(10^decimalPercision)
                 display.Text = tostring(value) .. "  "
-                bar.Size = UDim2.new((math.clamp(default, min, max) - min) / (max-min), 0, 1, 0)
+                bar.Size = UDim2.new((math.clamp(value, min, max) - min) / (max-min), 0, 1, 0)
             end,
             setValue = function(v)
                 local value = v*(10^decimalPercision)/(10^decimalPercision)
                 display.Text = tostring(value) .. "  "
-                bar.Size = UDim2.new((math.clamp(default, min, max) - min) / (max-min), 0, 1, 0)
+                bar.Size = UDim2.new((math.clamp(value, min, max) - min) / (max-min), 0, 1, 0)
             end,
             setLabelText = function(_txt)
                 txt.text = _txt
