@@ -2368,6 +2368,154 @@ carbon = {
             end
         end
     end,
+    newKeyPrompt = function(title, icon, callback)
+        local width = 200
+        local height = 120
+        local border = util.create("Frame", {
+            Size = UDim2.new(0, width + 4, 0, height + 4),
+            Position = UDim2.new(0.5,-width/2,0.5,-height/2),
+            Parent = root,
+            Name = "Carbon",
+            ZIndex = 1,
+            BackgroundTransparency = loadedTheme.carbonBorderEnabled and 0 or 1
+        })
+
+        util.addShadow(border, loadedTheme.shadowStrength)
+        util.makeDraggable(border)
+        util.roundify(border, loadedTheme.cornerRadius)
+
+        local gradient = util.create("UIGradient", {
+            Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, loadedTheme.accent),
+                ColorSequenceKeypoint.new(1, loadedTheme.secondaryAccent)
+            }),
+            Parent = border,
+            Rotation = 45
+        })
+        task.spawn(function()
+            while true do
+                gradient.Rotation += 1
+                task.wait()
+            end
+        end)
+
+        local main = util.create("Frame", {
+            Size = UDim2.new(0, width, 0, height),
+            Position = UDim2.new(0, 2, 0, 2),
+            BackgroundColor3 = loadedTheme.background,
+            Parent = border,
+            Name = "main"
+        })
+        util.roundify(main, loadedTheme.cornerRadius)
+
+        local topbar = util.create("Frame", {
+            Size = UDim2.new(0, width, 0, 30),
+            Position = UDim2.new(0, 0, 0, 0),
+            BackgroundColor3 = loadedTheme.topbar,
+            Parent = main
+        })
+        util.roundify(topbar, loadedTheme.cornerRadius)
+        util.create("Frame", {
+            Size = UDim2.new(0, width, 0, 15),
+            Position = UDim2.new(0, 0, 0, 15),
+            BackgroundColor3 = loadedTheme.topbar,
+            Parent = topbar,
+            BorderSizePixel = 0,
+            ZIndex = 2
+        })
+
+        util.create("TextLabel", {
+            Size = UDim2.new(0, width-(icon and 30 or 0), 0, 30),
+            Position = UDim2.new(0, icon and 30 or 0, 0, 0),
+            BackgroundTransparency = 1,
+            Font = loadedTheme["font"],
+            FontSize = loadedTheme["fontSize"],
+            TextColor3 = loadedTheme.foreground,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Text = "  " .. title,
+            Parent = topbar,
+            ZIndex = 100
+        })
+
+        local txt = util.create("TextBox", {
+            Size = UDim2.new(0, 170, 0, 20),
+            Position = UDim2.new(0, 15, 0, 45),
+            BackgroundColor3 = loadedTheme.topbar,
+            Text = "Key",
+            TextColor3 = loadedTheme.foreground,
+            Font = loadedTheme["font"],
+            FontSize = loadedTheme["fontSize"],
+            Parent = main
+        })
+        util.roundify(txt, loadedTheme.widgetCornerRadius)
+
+        local verify = util.create("TextButton", {
+            Size = UDim2.new(0, 100, 0, 20),
+            Position = UDim2.new(0, 50, 0, 75),
+            BackgroundColor3 = loadedTheme.topbar,
+            Text = "Verify",
+            TextColor3 = loadedTheme.foreground,
+            Font = loadedTheme["font"],
+            FontSize = loadedTheme["fontSize"],
+            Parent = main,
+            ClipsDescendants = true
+        })
+        util.roundify(verify, loadedTheme.widgetCornerRadius)
+
+        local errMsg = util.create("TextButton", {
+            Size = UDim2.new(1, 0, 0, 25),
+            Position = UDim2.new(0, 0, 0, 95),
+            BackgroundTransparency = 1,
+            Text = "",
+            TextTransparency = 1,
+            TextColor3 = Color3.new(1, 0, 0),
+            Font = loadedTheme["font"],
+            FontSize = loadedTheme["fontSize"],
+            Parent = main
+        })
+
+        verify.MouseButton1Down:Connect(function()
+            callback(txt.Text)
+            local circleEffect = util.create("Frame", {
+                Parent = verify,
+                BackgroundColor3 = Color3.new(1,1,1),
+                Size = UDim2.new(0,1,0,1),
+                Position = UDim2.new(0, mouse.X - verify.AbsolutePosition.X, 0, mouse.Y - verify.AbsolutePosition.Y),
+                AnchorPoint = Vector2.new(0.5,0.5)
+            })
+            util.create("UICorner", {
+                Parent = circleEffect,
+                CornerRadius = UDim.new(1,0)
+            })
+            task.spawn(function()
+                for i = 0,40 do
+                    circleEffect.Size += UDim2.new(0,7,0,7)
+                    circleEffect.BackgroundTransparency = i / 40
+                    task.wait()
+                end
+                circleEffect:Destroy()
+            end)
+        end)
+
+        return {
+            displayMessage = function(msg, txtCol)
+                errMsg.Text = msg
+                errMsg.TextColor3 = txtCol
+                task.spawn(function()
+                    for i = 10, 0, -1 do
+                        errMsg.TextTransparency = i / 10
+                        task.wait(0.025)
+                    end
+                end)
+                task.delay(2, function()
+                    for i = 0, 10 do
+                        errMsg.TextTransparency = i / 10
+                        task.wait(0.025)
+                    end
+                end)
+            end
+        }
+    end,
     util = util,
     loadTheme = loadTheme, -- Might move into util, though it's not as clean (util is mostly reserved for developer shit)
     loadThemeFromFile = loadThemeFromFile
