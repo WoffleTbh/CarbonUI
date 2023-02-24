@@ -2380,7 +2380,7 @@ carbon = {
             BackgroundTransparency = loadedTheme.carbonBorderEnabled and 0 or 1
         })
 
-        util.addShadow(border, loadedTheme.shadowStrength)
+        local shadow = util.addShadow(border, loadedTheme.shadowStrength)
         util.makeDraggable(border)
         util.roundify(border, loadedTheme.cornerRadius)
 
@@ -2513,6 +2513,9 @@ carbon = {
                         task.wait(0.025)
                     end
                 end)
+            end,
+            destroy = function()
+                shadow:Destroy()
             end
         }
     end,
