@@ -1487,8 +1487,8 @@ carbon = {
             TextXAlignment = Enum.TextXAlignment.Center
         })
         util.roundify(key, loadedTheme.widgetCornerRadius)
-        handlers[Enum.Enum.KeyCode[default][default]] = {callback, allowHold}
-        local prev = default
+        handlers[Enum.KeyCode[default]] = {callback, allowHold}
+        local prev = Enum.KeyCode[default]
         key.MouseButton1Down:Connect(function()
             if kbBg:FindFirstChild("disabled") then return end
             if settingKeybind then return end
