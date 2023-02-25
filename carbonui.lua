@@ -1487,7 +1487,8 @@ carbon = {
             TextXAlignment = Enum.TextXAlignment.Center
         })
         util.roundify(key, loadedTheme.widgetCornerRadius)
-        handlers[Enum.KeyCode[default]] = {callback, allowHold}
+        handlers[Enum.Enum.KeyCode[default][default]] = {callback, allowHold}
+        local prev = default
         key.MouseButton1Down:Connect(function()
             if kbBg:FindFirstChild("disabled") then return end
             if settingKeybind then return end
@@ -1495,6 +1496,9 @@ carbon = {
             key.Text = "[ ... ]"
             bindingFunc = function(k)
                 settingKeybind = false
+                handlers[prev] = nil
+                prev = k
+                handlers[Enum.KeyCode[default]] = {callback, allowHold}
                 key.Text = "[ " .. tostring(k.Name) .. " ]"
                 handlers[k] = {callback, allowHold}
                 bindingFunc = function(k) end
@@ -1506,7 +1510,7 @@ carbon = {
                 txt.Text = _txt
             end,
             setKey = function(k)
-                handlers[Enum.KeyCode[default]] = {callback, allowHold}
+                handlers[Enum.KeyCode[k]] = {callback, allowHold}
                 key.Text = "[ " .. k .. " ]"
             end,
             disable = function()
